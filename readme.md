@@ -3,3 +3,5 @@
 2. composer install
 3. cp -p .env.example .env
 4. php artisan key:generate
+
+Thereafter follow https://laravel.com/docs/5.3/passport.
