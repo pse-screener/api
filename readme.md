@@ -43,6 +43,7 @@ When using Laravel/Passport
 4. npm install --save-dev laravel-elixir-vue
 5. sudo npm install laravel-elixir-webpack-official --save-dev
 
+```
 p.morcilla@JTBosUPMorcilla:/var/www/pmorcilladev/pse_screener/api$ sudo gulp
 [10:07:46] Using gulpfile /var/www/pmorcilladev/pse_screener/api/gulpfile.js
 [10:07:46] Starting 'all'...
@@ -53,17 +54,6 @@ p.morcilla@JTBosUPMorcilla:/var/www/pmorcilladev/pse_screener/api$ sudo gulp
 [10:07:56] Finished 'webpack' after 8.6 s
 [10:07:56] Finished 'all' after 10 s
 [10:07:56] Starting 'default'...
-┌───────────────┬───────────────────────────────┬────────────────────────────────┬────────────────────┐
-│ Task          │ Summary                       │ Source Files                   │ Destination        │
-├───────────────┼───────────────────────────────┼────────────────────────────────┼────────────────────┤
-│ mix.sass()    │ 1. Compiling Sass             │ resources/assets/sass/app.scss │ public/css/app.css │
-│               │ 2. Autoprefixing CSS          │                                │                    │
-│               │ 3. Concatenating Files        │                                │                    │
-│               │ 4. Writing Source Maps        │                                │                    │
-│               │ 5. Saving to Destination      │                                │                    │
-├───────────────┼───────────────────────────────┼────────────────────────────────┼────────────────────┤
-│ mix.webpack() │ 1. Transforming ES2015 to ES5 │ resources/assets/js/app.js     │ public/js/app.js   │
-│               │ 2. Writing Source Maps        │                                │                    │
-│               │ 3. Saving to Destination      │                                │                    │
-└───────────────┴───────────────────────────────┴────────────────────────────────┴────────────────────┘
+....
 [10:07:56] Finished 'default' after 10 ms
+```
