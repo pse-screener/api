@@ -18,14 +18,3 @@ Route::get('/', function () {
 Auth::routes();
 
 Route::get('/home', 'HomeController@index');
-
-<<<<<<< HEAD
-Auth::routes();
-
-Route::get('/home', 'HomeController@index');
-
-Auth::routes();
-
-Route::get('/home', 'HomeController@index');
-=======
->>>>>>> ad8fe912dfa7ee52cbf85cce34c9c5ada633f053
