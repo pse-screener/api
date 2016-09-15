@@ -9,6 +9,7 @@ System requirements.
 5. npm -v 3.10.3
 
 Installation from cloned repo.
+
 1. npm install
 2. composer install
 3. cp -p .env.example .env
@@ -66,4 +67,7 @@ p.morcilla@JTBosUPMorcilla:/var/www/pmorcilladev/pse_screener/api$ sudo gulp
 curl http://www.pse-screener.com/oauth/token -d "grant_type=password&client_id=2&client_secret=uOibj06UNXXufKJXOd8rWMdPoWzxLwYCpjEwa3o7&username=test@gmail.com&password=123456"
 
 **To register i.e. create new user**
-curl http://www.pse-screener.com/register -d "name=Jhunexjun&email=test1@gmail.com&password=123456&mobileNo=09206939093&password_confirmation=123456&_token=fL4iYs3opaLmjgKmYvp6gAv8KAGyVLnQMvuI3RmR"
+curl http://www.pse-screener.com/register -d "name=Jhunexjun&email=test1@gmail.com&password=123456&mobileNo=09206939093&password_confirmation=123456"
+
+### After all, we may end up here....
+http://esbenp.github.io/2015/05/26/lumen-web-api-oauth-2-authentication/
