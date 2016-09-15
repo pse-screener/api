@@ -15,7 +15,11 @@ class User extends Authenticatable
      * @var array
      */
     protected $fillable = [
+<<<<<<< HEAD
         'name', 'email', 'password', 'test'
+=======
+        'name', 'email', 'password', 'mobileNo'
+>>>>>>> ad8fe912dfa7ee52cbf85cce34c9c5ada633f053
     ];
 
     /**
@@ -24,6 +28,10 @@ class User extends Authenticatable
      * @var array
      */
     protected $hidden = [
+<<<<<<< HEAD
         'password', 'remember_token', 'test'
+=======
+        'password', 'remember_token', 'mobileNo'
+>>>>>>> ad8fe912dfa7ee52cbf85cce34c9c5ada633f053
     ];
 }
