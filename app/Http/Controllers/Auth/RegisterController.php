@@ -7,6 +7,8 @@ use Validator;
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\RegistersUsers;
 
+use Illuminate\Http\Request;
+
 class RegisterController extends Controller
 {
     /*
@@ -68,5 +70,15 @@ class RegisterController extends Controller
             'password' => bcrypt($data['password']),
             'mobileNo' => $data['mobileNo'],
         ]);
+    }
+
+    public function register(Request $request)
+    {
+        $this->validator($request->all())->validate();
+
+        $this->guard()->login($this->create($request->all()));
+
+        // return redirect($this->redirectPath());
+        return response()->json(["code" => "0", "message" => "Okay."]);
     }
 }
