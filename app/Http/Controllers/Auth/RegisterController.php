@@ -29,7 +29,7 @@ class RegisterController extends Controller
      *
      * @var string
      */
-    protected $redirectTo = '/home';
+    protected $redirectTo = '/home'; //we don't redirect for api-based
 
     /**
      * Create a new controller instance.
@@ -50,9 +50,12 @@ class RegisterController extends Controller
     protected function validator(array $data)
     {
         return Validator::make($data, [
-            'name' => 'required|max:255',
-            'email' => 'required|email|max:255|unique:users',
+            'fName' => 'required|max:50',
+            'lName' => 'required|max:50',
+            'gender' => 'in:M,F',
+            'email' => 'required|email|max:100|unique:users',
             'password' => 'required|min:6|confirmed',
+            'mobileNo' => 'required|min:11|max:11|unique:users',
         ]);
     }
 
@@ -65,7 +68,9 @@ class RegisterController extends Controller
     protected function create(array $data)
     {
         return User::create([
-            'name' => $data['name'],
+            'fName' => $data['fName'],
+            'lName' => $data['lName'],
+            'gender' => $data['gender'],
             'email' => $data['email'],
             'password' => bcrypt($data['password']),
             'mobileNo' => $data['mobileNo'],
@@ -79,6 +84,6 @@ class RegisterController extends Controller
         $this->guard()->login($this->create($request->all()));
 
         // return redirect($this->redirectPath());
-        return response()->json(["code" => "0", "message" => "Okay."]);
+        return response()->json(["code" => "0", "message" => "Registration successful."]);
     }
 }
