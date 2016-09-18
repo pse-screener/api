@@ -63,11 +63,43 @@ p.morcilla@JTBosUPMorcilla:/var/www/pmorcilladev/pse_screener/api$ sudo gulp
 [10:07:56] Finished 'default' after 10 ms
 ```
 
-**To request token**
-curl http://www.pse-screener.com/oauth/token -d "grant_type=password&client_id=2&client_secret=uOibj06UNXXufKJXOd8rWMdPoWzxLwYCpjEwa3o7&username=test@gmail.com&password=123456"
+Apache2 config
+```
+<VirtualHost *:80>
+        ServerAdmin webmaster@localhost
+        ServerName www.pse-screener.com
+        DocumentRoot /var/www/pmorcilladev/pse_screener/api/public
 
-**To register i.e. create new user**
-curl http://www.pse-screener.com/register -d "name=Jhunexjun&email=test1@gmail.com&password=123456&mobileNo=09206939093&password_confirmation=123456"
+        # this is where our front-end is
+        Alias "/public" "/var/www/pmorcilladev/pse_screener/public"
+        # this is where the admin pages are
+        Alias "/admin" "/var/www/pmorcilladev/pse_screener/admin/app"
 
-### After all, we may end up here....
-http://esbenp.github.io/2015/05/26/lumen-web-api-oauth-2-authentication/
+        <Directory "/var/www/pmorcilladev/pse_screener/api/public">
+               Options Indexes FollowSymLinks MultiViews
+               AllowOverride All
+        </Directory>
+
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+
+<VirtualHost *:80>
+        ServerAdmin webmaster@localhost
+        # ServerAlias *.pse-screener.com
+        ServerName pse-screener.com
+        RedirectMatch permanent ^/(.*) http://www.pse-screener.com/$1
+
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+```
+
+# HTTP Requests
+**Requesting token**
+
+curl http://www.pse-screener.com/oauth/token -d 'grant_type=password&username=test@gmail.com.com&password=123456&client_id=1&client_secret=mjy4eilKhSJPd8y4IkHUPxiYvzB3UMShxNyJGZVz'
+
+**New registration**
+
+$ curl -H "Accept: application/json " http://www.pse-screener.com/register -d "fName=Jhunex&lName=Jun&gender=M&email=test1@gmail.com&password=123456&mobileNo=09206939093&password_confirmation=123456" > /d/tmp/error.html

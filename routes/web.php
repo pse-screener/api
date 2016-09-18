@@ -19,6 +19,10 @@ Auth::routes();
 
 Route::get('/home', 'HomeController@index');
 
-Route::get('/verify_token', function() {
-	// none
-})->middleware('auth:api');
+Route::group(['middleware' => 'auth:api'], function() {
+	Route::get('/verify_token', function() {
+		// none
+	});
+
+	Route::resource('dashboard', 'DashboardController');
+});
