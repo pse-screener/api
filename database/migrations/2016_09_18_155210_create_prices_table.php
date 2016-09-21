@@ -19,10 +19,12 @@ class CreatePricesTable extends Migration
             $table->decimal('high', 15, 4);
             $table->decimal('low', 15, 4);
             $table->decimal('close', 15, 4);
-            $table->datetime('ts_open');
-            $table->datetime('ts_high');
-            $table->datetime('ts_low');
-            $table->datetime('ts_close');
+            $table->datetime('tsOpen');
+            $table->datetime('tsHigh');
+            $table->datetime('tsLow');
+            $table->datetime('tsClose');
+            $table->decimal('closePercentChange');
+            $table->decimal('closeVolume');
             $table->timestamps();
         });
     }

@@ -27,10 +27,6 @@ class CreateDashboardTable extends Migration
      */
     public function down()
     {
-        Schema::create('dashboard', function (Blueprint $table) {
-            $table->increments('id');            
-            $table->integer('id');
-            $table->timestamps();
-        });
+        Schema::drop('dashboard');
     }
 }
