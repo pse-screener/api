@@ -16,16 +16,16 @@ class CreatePricesTable extends Migration
         Schema::create('prices', function (Blueprint $table) {
             $table->increments('id');
             $table->integer('companyId');
-            $table->decimal('open', 15, 4);
-            $table->decimal('high', 15, 4);
-            $table->decimal('low', 15, 4);
+            $table->decimal('open', 15, 4)->nullable();
+            $table->decimal('high', 15, 4)->nullable();
+            $table->decimal('low', 15, 4)->nullable();
             $table->decimal('close', 15, 4);
-            $table->datetime('tsOpen');
-            $table->datetime('tsHigh');
-            $table->datetime('tsLow');
+            $table->datetime('tsOpen')->nullable();
+            $table->datetime('tsHigh')->nullable();
+            $table->datetime('tsLow')->nullable();
             $table->datetime('tsClose');
             $table->decimal('closePercentChange');
-            $table->decimal('closeVolume');
+            $table->integer('closeVolume');
             $table->timestamps();
         });
     }
