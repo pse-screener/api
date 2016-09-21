@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests;*/
 
 use \App\Company;
+use \App\Prices;
 
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Client;
@@ -20,8 +21,7 @@ class downloadAllCompanyController extends Controller
 		// file_put_contents("/tmp/response.txt", print_r($stocks, TRUE));
 
 		foreach ($stocks as $stock) {
-			\App\Company::create(['companyName' => $stock['name'], 'symbol' => $stock['symbol']]);
-		}
-		
+			\App\Company::updateOrCreate(['companyName' => $stock['name'], 'symbol' => $stock['symbol']]);
+		}		
     }
 }
