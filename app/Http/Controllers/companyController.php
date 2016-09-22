@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 use \App\Company as Company;
 use \App\Price as Price;
+use \App\System_settings as Settings;
 
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Client;
@@ -37,10 +38,12 @@ class companyController extends Controller
     }
 
     private function getLatestClosedDate() {
-    	return DB::table('companies')->max('tsClose')->value('tsClose');
+    	$value = DB::table('system_settings')->where('id', "=", 1);
+    	file_put_contents("/tmp/value.txt", print_r($value, TRUE));
+    	return $value;
     }
 
-    public function downloadPrice() {
+    public function downloadPrices() {
     	$client = new Client(); //GuzzleHttp\Client
 
     	// courtesy of http://phisix-api4.appspot.com/
@@ -66,28 +69,35 @@ class companyController extends Controller
 
 			foreach ($stocks as $stock) {
 				$companyId = $this->getCompanyId($stock['symbol']);
+				$price = $stock['price']['amount'];
+				$percentChange = $stock['percent_change'];
+				$volume = $stock['volume'];
 
 				Price::create([
 					'companyId' => $companyId,
-					'open' => $stock['price']['amount'],
-					'high' => $stock['price']['amount'],
-					'low' => $stock['price']['amount'],
-					'close' => $stock['price']['amount'],
+					'open' => $price,
+					'high' => $price,
+					'low' => $price,
+					'close' => $price,
 					'tsOpen' => $asOfDateTime,
 					'tsHigh' => $asOfDateTime,
 					'tsLow' => $asOfDateTime,
 					'tsClose' => $asOfDateTime,
-					'percentChange' => $stock['percent_change'],
-					'volume' => $stock['volume'],
+					'percentChange' => $percentChange,
+					'volume' => $volume,
 				]);
 			}
 		} elseif ($latestClosedDateOnly == $asOfDateOnly) {
 			// high, low, closing
 			foreach ($stocks as $stock) {
 				// DB::insert('insert into companies () values (?, ?)', [1, 'Dayle']);
-				DB::
+				DB::statement("call update_companies($companyId, $price, $percentChange, $volume)");
 			}
+		} else {
+			echo "Something wrong here.";
 		}
+
+		// Settings::where('id', 1)->update(['latest_tsPrice' => $asOfDateOnly]);
     }
 
     /*public function dlAllCompaniesAndClosePrice() {

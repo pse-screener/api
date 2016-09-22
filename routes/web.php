@@ -28,4 +28,4 @@ Route::group(['middleware' => 'auth:api'], function() {
 });
 
 Route::get('/downloadAllCompanies', 'companyController@downloadAllCompanies');
-Route::get('/downloadPrice', 'companyController@downloadPrice');
+Route::get('/downloadPrices', 'companyController@downloadPrices');
