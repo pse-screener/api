@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use \App\Company as Company;
 use \App\Price as Price;
 use \App\System_settings as Settings;
+use \App\Raw_records as RawRecords;
 
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Client;
@@ -33,7 +34,6 @@ class companyController extends Controller
     }
 
     private function getCompanyId($symbol) {
-    	// return Company::where('symbol', '=', $symbol)[0];
     	return DB::table('companies')->where('symbol', $symbol)->value('id');
     }
 
@@ -43,7 +43,7 @@ class companyController extends Controller
     	return $value;
     }
 
-    public function downloadPrices() {
+    public function downloadPrices_Old() {
     	$client = new Client(); //GuzzleHttp\Client
 
     	// courtesy of http://phisix-api4.appspot.com/
@@ -131,4 +131,35 @@ class companyController extends Controller
 		}
     }*/
 
+    public function downloadPrices() {
+    	$client = new Client();
+
+		$response = $client->get('http://phisix-api4.appspot.com/stocks.json');
+		$data = json_decode($response->getBody(), TRUE);
+		
+		$stocks = $data['stock'];
+		$asOf = $data['as_of'];
+		preg_match("/(\d{4}-\d{2}-\d{2})/", $asOf, $match);
+		$asOfDateOnly = $match[0];
+		preg_match("/(\d{2}:\d{2}:\d{2})/", $asOf, $match);
+		$asOfTimeOnly = $match[0];
+		$asOfDateTime = $asOfDateOnly . " " . $asOfTimeOnly;
+		$asOfDateTime = \DateTime::createFromFormat('Y-m-d H:i:s', $asOfDateTime);
+		
+		foreach ($stocks as $stock) {
+			RawRecords::create([
+				'symbol' => $stock['symbol'],
+				'companyName' => $stock['name'],
+				'amount' => $stock['price']['amount'],
+				'percentChange' => $stock['percent_change'],
+				'volume' => $stock['volume'],
+				'asOf' => $asOfDateTime,
+			]);
+		}
+    }
+
+    public function materializeRawData() {
+    	$rawRecords = RawRecords::where("date_format(asOf, '%Y-%m-%d')", "=", "date_format(now(), '%Y-%m-%d)")->get();
+    	
+    }
 }

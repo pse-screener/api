@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreatePricesTable extends Migration
+class CreateDailyAggregationTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,19 +13,14 @@ class CreatePricesTable extends Migration
      */
     public function up()
     {
-        Schema::create('prices', function (Blueprint $table) {
+        Schema::create('daily_aggregations', function (Blueprint $table) {
             $table->increments('id');
             $table->integer('companyId');
-            $table->decimal('open', 16, 4)->nullable();
-            $table->decimal('high', 16, 4)->nullable();
-            $table->decimal('low', 16, 4)->nullable();
-            $table->decimal('close', 16, 4)->nullable();
-            $table->datetime('tsOpen')->nullable();
-            $table->datetime('tsHigh')->nullable();
-            $table->datetime('tsLow')->nullable();
-            $table->datetime('tsClose')->nullable();
+            $table->decimal('price', 16, 4);
+            $table->datetime('asOf');
             $table->decimal('percentChange', 8, 4)->nullable();
             $table->integer('volume')->nullable();
+            $table->boolean('lastNewPrice');
             $table->timestamps();
         });
     }
@@ -37,6 +32,6 @@ class CreatePricesTable extends Migration
      */
     public function down()
     {
-        Schema::drop('prices');
+        Schema::dropIfExists('daily_aggregations');
     }
 }
