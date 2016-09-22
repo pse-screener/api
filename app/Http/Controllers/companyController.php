@@ -16,6 +16,8 @@ class companyController extends Controller
 {
     public function dlAllCompaniesAndClosePrice() {
     	$client = new Client(); //GuzzleHttp\Client
+
+    	// http://phisix-api4.appspot.com/
 		$response = $client->get('http://phisix-api4.appspot.com/stocks.json');
 		$data = json_decode($response->getBody(), TRUE);
 		
@@ -37,6 +39,38 @@ class companyController extends Controller
 				'companyId' => $companyObjData->id,
 				'close' => $stock['price']['amount'],
 				'tsClose' => $asOf,
+				'closePercentChange' => $stock['percent_change'],
+				'closeVolume' => $stock['volume'],
+			]);
+		}
+    }
+
+    // this should be ran around 9:30 and to be safe it should be exactly 1 ran when it has new data found.
+    public function dlAllCompaniesAndOpenPrice() {
+    	$client = new Client(); //GuzzleHttp\Client
+
+    	// courtesy of http://phisix-api4.appspot.com/
+		$response = $client->get('http://phisix-api4.appspot.com/stocks.json');
+		$data = json_decode($response->getBody(), TRUE);
+		
+		// file_put_contents("/tmp/response.txt", print_r($data, TRUE));
+		$stocks = $data['stock'];
+		$asOf = $data['as_of'];
+		preg_match("/(\d{4}-\d{2}-\d{2})/", $asOf, $match);
+		$date = $match[0];
+		preg_match("/(\d{2}:\d{2}:\d{2})/", $asOf, $match);
+		$time = $match[0];
+		$dateTime = $date . " " . $time;
+
+		$asOf = \DateTime::createFromFormat('Y-m-d H:i:s', $dateTime);
+
+		foreach ($stocks as $stock) {
+			$companyObjData = Company::updateOrCreate(['companyName' => $stock['name'], 'symbol' => $stock['symbol']]);
+
+			Price::updateOrCreate([
+				'companyId' => $companyObjData->id,
+				'close' => $stock['price']['amount'],
+				'tsOpen' => $asOf,
 				'closePercentChange' => $stock['percent_change'],
 				'closeVolume' => $stock['volume'],
 			]);
