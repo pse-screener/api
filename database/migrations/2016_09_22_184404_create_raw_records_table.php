@@ -20,7 +20,7 @@ class CreateRawRecordsTable extends Migration
             $table->decimal('percentChange', 8, 4);
             $table->integer('volume');
             $table->datetime('asOf');
-            $table->boolean('materialized');
+            $table->boolean('materialized')->nullable();
             $table->timestamps();
         });
     }

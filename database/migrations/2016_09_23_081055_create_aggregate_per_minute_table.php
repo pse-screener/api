@@ -18,9 +18,8 @@ class CreateAggregatePerMinuteTable extends Migration
             $table->integer('companyId');
             $table->decimal('price', 16, 4);
             $table->datetime('asOf');
-            $table->decimal('percentChange', 8, 4)->nullable();
-            $table->integer('volume')->nullable();
-            $table->boolean('latestPrice')-.nullable();
+            $table->decimal('percentChange', 8, 4);
+            $table->integer('volume');
             $table->timestamps();
         });
     }

@@ -150,7 +150,6 @@ class companyController extends Controller
 		foreach ($stocks as $stock) {
 			RawRecords::create([
 				'symbol' => $stock['symbol'],
-				'companyName' => $stock['name'],
 				'amount' => $stock['price']['amount'],
 				'percentChange' => $stock['percent_change'],
 				'volume' => $stock['volume'],
@@ -164,28 +163,17 @@ class companyController extends Controller
     }
 
     public function materializeRawDataPerMinute() {
-    	$lastPerMinuteBuild = $this->getLastPerMinuteBuild();
-    	if (!$lastPerMinuteBuild)
-    		echo "Error: No last per minute build value.";
-
-    	$rawRecords = RawRecords::where("asOf", "=", "$lastPerMinuteBuild")->get();
-    	$materlializedRecords = array();
-
+    	$rawRecords = RawRecords::whereRaw('materialized IS NULL OR materialized = 0')->get();
+    	
     	foreach ($rawRecords as $rawRecord) {
     		$symbol = $rawRecord['symbol'];
     		$price = $rawRecord['amount'];
     		$asOf = $rawRecord['asOf'];
     		$percentChange = $rawRecord['percentChange'];
     		$volume = $rawRecord['volume'];
+    		$rawRecordId = $rawRecord['id'];
 
-    		DB::statement("call sp_aggregate_per_minute($symbol, $price, $asOf, $percentChange, $volume)");	
-    		$materlializedRecords[] = $rawRecord['id'];
+    		DB::statement("call sp_aggregate_per_minute('$symbol', $price, '$asOf', $percentChange, $volume, $rawRecordId)");
     	}
-
-    	foreach ($materlializedRecords as $record) {
-    		# code...
-    	}
-
-    	// DB::statement("UPDATE system_settings SET last_per_min_build = DATE_ADD(last_per_min_build, INTERVAL 1 MINUTE) WHERE id = 1");
     }
 }
