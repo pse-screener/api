@@ -17,10 +17,13 @@ class CreateSystemSettings extends Migration
     {
         Schema::create('system_settings', function (Blueprint $table) {
             $table->increments('id');
-            $table->datetime('latest_tsPrice')->nullable();
+            $table->datetime('last_per_min_build');
+            $table->boolean('performedEOD');
         });
 
-        DB::table('system_settings')->insert(array('latest_tsPrice' => '2010-01-01 00:00:00'));
+        DB::table('system_settings')->insert(array('last_per_min_build' => '2016-09-23 15:19:00',
+            'performedEOD' => '0')
+        );
     }
 
     /**

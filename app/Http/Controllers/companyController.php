@@ -131,6 +131,7 @@ class companyController extends Controller
 		}
     }*/
 
+    /* being ran every minute. */
     public function downloadPrices() {
     	$client = new Client();
 
@@ -158,8 +159,33 @@ class companyController extends Controller
 		}
     }
 
-    public function materializeRawData() {
-    	$rawRecords = RawRecords::where("date_format(asOf, '%Y-%m-%d')", "=", "date_format(now(), '%Y-%m-%d)")->get();
-    	
+    private function getLastPerMinuteBuild() {
+    	return DB::table('system_settings')->where('id', 1)->value('last_per_min_build');
+    }
+
+    public function materializeRawDataPerMinute() {
+    	$lastPerMinuteBuild = $this->getLastPerMinuteBuild();
+    	if (!$lastPerMinuteBuild)
+    		echo "Error: No last per minute build value.";
+
+    	$rawRecords = RawRecords::where("asOf", "=", "$lastPerMinuteBuild")->get();
+    	$materlializedRecords = array();
+
+    	foreach ($rawRecords as $rawRecord) {
+    		$symbol = $rawRecord['symbol'];
+    		$price = $rawRecord['amount'];
+    		$asOf = $rawRecord['asOf'];
+    		$percentChange = $rawRecord['percentChange'];
+    		$volume = $rawRecord['volume'];
+
+    		DB::statement("call sp_aggregate_per_minute($symbol, $price, $asOf, $percentChange, $volume)");	
+    		$materlializedRecords[] = $rawRecord['id'];
+    	}
+
+    	foreach ($materlializedRecords as $record) {
+    		# code...
+    	}
+
+    	// DB::statement("UPDATE system_settings SET last_per_min_build = DATE_ADD(last_per_min_build, INTERVAL 1 MINUTE) WHERE id = 1");
     }
 }

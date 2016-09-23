@@ -16,11 +16,11 @@ class CreateRawRecordsTable extends Migration
         Schema::create('raw_records', function (Blueprint $table) {
             $table->increments('id');
             $table->string('symbol');
-            $table->string('companyName');
             $table->decimal('amount', 16, 4);
             $table->decimal('percentChange', 8, 4);
             $table->integer('volume');
             $table->datetime('asOf');
+            $table->boolean('materialized');
             $table->timestamps();
         });
     }
