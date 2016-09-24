@@ -148,7 +148,7 @@ class companyController extends Controller
 		$asOfDateTime = \DateTime::createFromFormat('Y-m-d H:i:s', $asOfDateTime);
 		
 		foreach ($stocks as $stock) {
-			RawRecords::create([
+			RawRecords::updateOrCreate([
 				'symbol' => $stock['symbol'],
 				'amount' => $stock['price']['amount'],
 				'percentChange' => $stock['percent_change'],
