@@ -8,7 +8,6 @@ USE `pse_screener_pmorcilladev`$$
 DROP PROCEDURE IF EXISTS `sp_aggregate_per_minute`$$
 
 CREATE DEFINER=`pmorcilladev`@`%` PROCEDURE `sp_aggregate_per_minute`(
--- CREATE DEFINER=`pmorcilladev`@`%` PROCEDURE `update_prices`(
 	IN var_symbol VARCHAR(255),
 	IN var_price DECIMAL(16, 4),
 	IN var_asOf DATETIME,

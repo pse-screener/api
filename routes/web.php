@@ -27,6 +27,7 @@ Route::group(['middleware' => 'auth:api'], function() {
 	Route::resource('dashboard', 'DashboardController');
 });
 
-Route::get('/downloadAllCompanies', 'companyController@downloadAllCompanies');
-Route::get('/downloadPrices', 'companyController@downloadPrices');
-Route::get('/materializeRawDataPerMinute', 'companyController@materializeRawDataPerMinute');
+Route::get('/downloadAllCompanies', 'routinesController@downloadAllCompanies');
+Route::get('/downloadPrices', 'routinesController@downloadPrices');
+Route::get('/materializeRawDataPerMinute', 'routinesController@materializeRawDataPerMinute');
+Route::get('/materializeForPerCompanyDaily', 'routinesController@materializeForPerCompanyDaily');
