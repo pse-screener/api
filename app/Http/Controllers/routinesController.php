@@ -95,53 +95,55 @@ class routinesController extends Controller
 
     			$sql = "SELECT companyId,
 					(SELECT price FROM aggregate_per_minute
-						WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = '$myDate'
+						WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
 						AND companyId = table1.companyId
 						ORDER BY asOf ASC LIMIT 1
 					) AS openPrice,
-					MAX(price), MIN(price),
+
+					MAX(price) AS highPrice, MIN(price) AS lowPrice,
+
 					(SELECT price FROM aggregate_per_minute
-						WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = '$myDate'
+						WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
 						AND companyId = table1.companyId
 						ORDER BY asOf DESC LIMIT 1
 					) AS closePrice,
 					(SELECT asOf FROM aggregate_per_minute
-						WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = '$myDate'
+						WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
 						AND companyId = table1.companyId
 						ORDER BY asOf ASC LIMIT 1
 					) AS tsOpen,
 					(SELECT asOf  FROM aggregate_per_minute
-						WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = '$myDate'
+						WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
 						AND companyId = table1.companyId
 						GROUP BY asOf
 						ORDER BY MAX(price) DESC LIMIT 1
 					) AS tsHigh,
 					(SELECT asOf  FROM aggregate_per_minute
-						WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = '$myDate'
+						WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
 						AND companyId = table1.companyId
 						GROUP BY asOf
 						ORDER BY MIN(price) ASC LIMIT 1
 					) AS tsLow,
 					(SELECT asOf FROM aggregate_per_minute
-						WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = '$myDate'
+						WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
 						AND companyId = table1.companyId
 						ORDER BY asOf DESC LIMIT 1
 					) AS tsClose
 					FROM aggregate_per_minute AS table1
-					WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = '$myDate'
+					WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
 					GROUP BY companyId";
 				$anotherRecords = DB::select($sql);
 
-				file_put_contents("/tmp/records.txt", print_r($anotherRecords, TRUE));
+				// file_put_contents("/tmp/records.txt", print_r($sql, TRUE));
 
-				exit();
+				// exit();
 
-				/*foreach ($anotherRecords as $anotherRecord) {
+				foreach ($anotherRecords as $anotherRecord) {
 					MaterializePerCompanyDaily::updateOrCreate([
 						'companyId' => $anotherRecord->companyId,
 						'openPrice' => $anotherRecord->openPrice,
-						'maxPrice' => $anotherRecord->maxPrice,
-						'minPrice' => $anotherRecord->minPrice,
+						'highPrice' => $anotherRecord->highPrice,
+						'lowPrice' => $anotherRecord->lowPrice,
 						'closePrice' => $anotherRecord->closePrice,
 						'tsOpen' => $anotherRecord->tsOpen,
 						'tsHigh' => $anotherRecord->tsHigh,
@@ -149,7 +151,7 @@ class routinesController extends Controller
 						'tsClose' => $anotherRecord->tsClose,
 						'asOf' => $myDate,
 					]);
-				}*/
+				}
     		}
     	}
 
