@@ -16,20 +16,20 @@ class CreateMaterializePerCompanyDailyTable extends Migration
         Schema::create('materialize_per_company_daily', function (Blueprint $table) {
             $table->increments('id');
             $table->integer('companyId');
-            $table->decimal('open', 16, 4);
-            $table->decimal('high', 16, 4);
-            $table->decimal('low', 16, 4);
-            $table->decimal('close', 16, 4);
+            $table->decimal('openPrice', 16, 4);
+            $table->decimal('highPrice', 16, 4);
+            $table->decimal('lowPrice', 16, 4);
+            $table->decimal('closePrice', 16, 4);
             $table->datetime('tsOpen');
             $table->datetime('tsHigh');
             $table->datetime('tsLow');
             $table->datetime('tsClose');
-            $table->decimal('percentChange', 8, 4);
-            $table->integer('volume');
+            $table->decimal('percentChange', 8, 4)->nullable();
+            $table->integer('volume')->nullable();
             $table->date('asOf');
             $table->timestamps();
 
-            $table->index(['companyId', 'asOf']);
+            $table->unique(['companyId', 'asOf']);
         });
     }
 

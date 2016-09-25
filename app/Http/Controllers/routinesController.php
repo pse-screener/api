@@ -10,8 +10,6 @@ use Illuminate\Support\Facades\DB;
 
 use \App\Company as Company;
 use \App\Raw_records as RawRecords;
-use \App\Materialize_per_company_daily as MaterializePerCompanyDaily;
-// use \App\Aggregate_per_minute as AggregatePerMinute;
 
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Client;
@@ -86,12 +84,13 @@ class routinesController extends Controller
     	foreach ($tableDates as $tableDate) {
     		// group by dates
 
-    		$date1 = $tableDate->asOf;
+    		// $date1 = $tableDate->asOf;
 
-    		$records = DB::table('aggregate_per_minute')->whereRaw("DATE_FORMAT(asOf, '%Y-%m-%d') = '$date1'")->get();    		
+    		// $records = DB::table('aggregate_per_minute')->whereRaw("DATE_FORMAT(asOf, '%Y-%m-%d') = '$date1'")->get();    		
 
-    		foreach ($records as $row) {
-    			$myDate = $row->asOf;
+    		// foreach ($records as $record) {
+    			// $myDate = $record->asOf;
+    		$myDate = $tableDate->asOf;
 
     			$sql = "SELECT companyId,
 					(SELECT price FROM aggregate_per_minute
@@ -132,27 +131,28 @@ class routinesController extends Controller
 					FROM aggregate_per_minute AS table1
 					WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
 					GROUP BY companyId";
-				$anotherRecords = DB::select($sql);
+				$rows = DB::select($sql);
 
-				// file_put_contents("/tmp/records.txt", print_r($sql, TRUE));
+				foreach ($rows as $row) {
+					$companyId = $row->companyId;
+					$openPrice = $row->openPrice;
+					$highPrice = $row->highPrice;
+					$lowPrice = $row->lowPrice;
+					$closePrice = $row->closePrice;
+					$tsOpen = $row->tsOpen;
+					$tsHigh = $row->tsHigh;
+					$tsLow = $row->tsLow;
+					$tsClose = $row->tsClose;
+					$asOf = $myDate;
 
-				// exit();
-
-				foreach ($anotherRecords as $anotherRecord) {
-					MaterializePerCompanyDaily::updateOrCreate([
-						'companyId' => $anotherRecord->companyId,
-						'openPrice' => $anotherRecord->openPrice,
-						'highPrice' => $anotherRecord->highPrice,
-						'lowPrice' => $anotherRecord->lowPrice,
-						'closePrice' => $anotherRecord->closePrice,
-						'tsOpen' => $anotherRecord->tsOpen,
-						'tsHigh' => $anotherRecord->tsHigh,
-						'tsLow' => $anotherRecord->tsLow,
-						'tsClose' => $anotherRecord->tsClose,
-						'asOf' => $myDate,
-					]);
+					DB::insert("INSERT INTO materialize_per_company_daily(companyId, openPrice, highPrice, lowPrice, closePrice, tsOpen, tsHigh, tsLow, tsClose, asOf)
+						VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+						ON DUPLICATE KEY UPDATE openPrice = ?, highPrice = ?, lowPrice = ?, closePrice = ?, tsOpen = ?, tsHigh = ?, tsLow = ?, tsClose = ?",
+						[$companyId, $openPrice, $highPrice, $lowPrice, $closePrice, $tsOpen, $tsHigh, $tsLow, $tsClose, $asOf,
+							$openPrice, $highPrice, $lowPrice, $closePrice, $tsOpen, $tsHigh, $tsLow, $tsClose
+						]);
 				}
-    		}
+    		// }
     	}
 
     }
