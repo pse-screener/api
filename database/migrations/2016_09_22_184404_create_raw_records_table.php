@@ -23,7 +23,7 @@ class CreateRawRecordsTable extends Migration
             $table->boolean('materialized')->nullable();
             $table->timestamps();
 
-            $table->index(['symbol', 'amount', 'percentChange', 'volume', 'asOf']);
+            $table->unique(['symbol', 'amount', 'percentChange', 'volume', 'asOf']);
         });
     }
 

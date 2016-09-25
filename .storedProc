@@ -3,7 +3,7 @@ Stored proc
 1. 
 DELIMITER $$
 
-USE `pse_screener_pmorcilladev`$$
+USE `pse_monitor_pmorcilladev`$$
 
 DROP PROCEDURE IF EXISTS `sp_aggregate_per_minute`$$
 
@@ -25,8 +25,8 @@ BEGIN
 	END IF;
 	
 	IF (var_price != @price) THEN
-		INSERT INTO aggregate_per_minute(companyId, price, asOf, percentChange, volume)
-			VALUES(@companyId, var_price, var_asOf, var_percentChange, var_volume);
+		INSERT INTO aggregate_per_minute(companyId, price, asOf, percentChange, volume, created_at)
+			VALUES(@companyId, var_price, var_asOf, var_percentChange, var_volume, NOW());
 		-- tag as materialized
 		UPDATE raw_records SET materialized = 1 WHERE id = rawRecordId;
 	END IF;
@@ -38,24 +38,44 @@ DELIMITER ;
 
 DELIMITER $$
 
-USE `pse_screener_pmorcilladev`$$
+USE `pse_monitor_pmorcilladev`$$
 
-DROP PROCEDURE IF EXISTS `update_prices`$$
+DROP PROCEDURE IF EXISTS `sp_materialize_per_company_daily`$$
 
-CREATE DEFINER=`pmorcilladev`@`%` PROCEDURE `update_prices`(
+CREATE DEFINER=`pmorcilladev`@`%` PROCEDURE `sp_materialize_per_company_daily`(
 	IN companyId INT(11),
-	IN price DECIMAL(16, 4),
-	IN percentChange DECIMAL(8, 2),
-	IN volume INT(11)
-)
+	IN openPrice DECIMAL(16, 4),
+	IN highPrice DECIMAL(16, 4),
+	IN lowPrice DECIMAL(16, 4),
+	IN closePrice DECIMAL(16, 4),
+	IN tsOpen DATETIME,
+	IN tsHigh DATETIME,
+	IN tsLow DATETIME,
+	IN tsClose DATETIME,
+	IN asOf DATE
+    )
 BEGIN
-   SET @high = (SELECT high FROM prices WHERE companyId = companyId);
-   SET @low = (SELECT low FROM prices WHERE companyId = companyId);
-   IF (price > @high) THEN
-      UPDATE prices SET high = price, `close` = price, percentChange = percentChange, volume = volume WHERE companyId = companyId;
-   ELSEIF (price < @low) THEN
-      UPDATE prices SET low = price, `close`= price, percentChange = percentChange, volume = volume WHERE companyId = companyId;
-   END IF;
+	INSERT INTO materialize_per_company_daily(companyId, openPrice, highPrice, lowPrice, closePrice, tsOpen, tsHigh, tsLow, tsClose, asOf)
+		VALUES(companyId, openPrice, highPrice, lowPrice, closePrice, tsOpen, tsHigh, tsLow, tsClose, asOf)
+		ON DUPLICATE KEY UPDATE openPrice = openPrice, highPrice = highPrice, lowPrice = lowPrice, closePrice = closePrice, tsOpen = tsOpen, tsHigh = tsHigh, tsLow = tsLow, tsClose = tsClose;
+    END$$
+
+DELIMITER ;
+
+3. 
+
+DELIMITER $$
+
+USE `pse_monitor_pmorcilladev`$$
+
+DROP PROCEDURE IF EXISTS `sp_perform_eod`$$
+
+CREATE DEFINER=`pmorcilladev`@`%` PROCEDURE `sp_perform_eod`()
+BEGIN
+	SET @disabledEOD = (SELECT disable_eod FROM system_settings WHERE id = 1);
+	IF (@disabledEOD = 0) THEN
+		UPDATE system_settings SET last_eod = (SELECT MAX(asOf) FROM materialize_per_company_daily), last_exec_eod = NOW();
+	END IF;
 END$$
 
 DELIMITER ;

@@ -31,3 +31,4 @@ Route::get('/downloadAllCompanies', 'routinesController@downloadAllCompanies');
 Route::get('/downloadPrices', 'routinesController@downloadPrices');
 Route::get('/materializeRawDataPerMinute', 'routinesController@materializeRawDataPerMinute');
 Route::get('/materializeForPerCompanyDaily', 'routinesController@materializeForPerCompanyDaily');
+Route::get('/performEOD', 'routinesController@performEOD');

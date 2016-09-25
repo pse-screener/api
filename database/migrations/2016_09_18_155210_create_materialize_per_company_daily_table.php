@@ -27,7 +27,8 @@ class CreateMaterializePerCompanyDailyTable extends Migration
             $table->decimal('percentChange', 8, 4)->nullable();
             $table->integer('volume')->nullable();
             $table->date('asOf');
-            $table->timestamps();
+            $table->datetime('created_at');
+            $table->timestamp('updated_at')->default(DB::raw('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'));
 
             $table->unique(['companyId', 'asOf']);
         });

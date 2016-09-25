@@ -84,76 +84,73 @@ class routinesController extends Controller
     	foreach ($tableDates as $tableDate) {
     		// group by dates
 
-    		// $date1 = $tableDate->asOf;
-
-    		// $records = DB::table('aggregate_per_minute')->whereRaw("DATE_FORMAT(asOf, '%Y-%m-%d') = '$date1'")->get();    		
-
-    		// foreach ($records as $record) {
-    			// $myDate = $record->asOf;
     		$myDate = $tableDate->asOf;
 
-    			$sql = "SELECT companyId,
-					(SELECT price FROM aggregate_per_minute
-						WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
-						AND companyId = table1.companyId
-						ORDER BY asOf ASC LIMIT 1
-					) AS openPrice,
-
-					MAX(price) AS highPrice, MIN(price) AS lowPrice,
-
-					(SELECT price FROM aggregate_per_minute
-						WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
-						AND companyId = table1.companyId
-						ORDER BY asOf DESC LIMIT 1
-					) AS closePrice,
-					(SELECT asOf FROM aggregate_per_minute
-						WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
-						AND companyId = table1.companyId
-						ORDER BY asOf ASC LIMIT 1
-					) AS tsOpen,
-					(SELECT asOf  FROM aggregate_per_minute
-						WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
-						AND companyId = table1.companyId
-						GROUP BY asOf
-						ORDER BY MAX(price) DESC LIMIT 1
-					) AS tsHigh,
-					(SELECT asOf  FROM aggregate_per_minute
-						WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
-						AND companyId = table1.companyId
-						GROUP BY asOf
-						ORDER BY MIN(price) ASC LIMIT 1
-					) AS tsLow,
-					(SELECT asOf FROM aggregate_per_minute
-						WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
-						AND companyId = table1.companyId
-						ORDER BY asOf DESC LIMIT 1
-					) AS tsClose
-					FROM aggregate_per_minute AS table1
+			$sql = "SELECT companyId,
+				(SELECT price FROM aggregate_per_minute
 					WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
-					GROUP BY companyId";
-				$rows = DB::select($sql);
+					AND companyId = table1.companyId
+					ORDER BY asOf ASC LIMIT 1
+				) AS openPrice,
 
-				foreach ($rows as $row) {
-					$companyId = $row->companyId;
-					$openPrice = $row->openPrice;
-					$highPrice = $row->highPrice;
-					$lowPrice = $row->lowPrice;
-					$closePrice = $row->closePrice;
-					$tsOpen = $row->tsOpen;
-					$tsHigh = $row->tsHigh;
-					$tsLow = $row->tsLow;
-					$tsClose = $row->tsClose;
-					$asOf = $myDate;
+				MAX(price) AS highPrice, MIN(price) AS lowPrice,
 
-					DB::insert("INSERT INTO materialize_per_company_daily(companyId, openPrice, highPrice, lowPrice, closePrice, tsOpen, tsHigh, tsLow, tsClose, asOf)
-						VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-						ON DUPLICATE KEY UPDATE openPrice = ?, highPrice = ?, lowPrice = ?, closePrice = ?, tsOpen = ?, tsHigh = ?, tsLow = ?, tsClose = ?",
-						[$companyId, $openPrice, $highPrice, $lowPrice, $closePrice, $tsOpen, $tsHigh, $tsLow, $tsClose, $asOf,
-							$openPrice, $highPrice, $lowPrice, $closePrice, $tsOpen, $tsHigh, $tsLow, $tsClose
-						]);
-				}
-    		// }
+				(SELECT price FROM aggregate_per_minute
+					WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
+					AND companyId = table1.companyId
+					ORDER BY asOf DESC LIMIT 1
+				) AS closePrice,
+				(SELECT asOf FROM aggregate_per_minute
+					WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
+					AND companyId = table1.companyId
+					ORDER BY asOf ASC LIMIT 1
+				) AS tsOpen,
+				(SELECT asOf  FROM aggregate_per_minute
+					WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
+					AND companyId = table1.companyId
+					GROUP BY asOf
+					ORDER BY MAX(price) DESC LIMIT 1
+				) AS tsHigh,
+				(SELECT asOf  FROM aggregate_per_minute
+					WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
+					AND companyId = table1.companyId
+					GROUP BY asOf
+					ORDER BY MIN(price) ASC LIMIT 1
+				) AS tsLow,
+				(SELECT asOf FROM aggregate_per_minute
+					WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
+					AND companyId = table1.companyId
+					ORDER BY asOf DESC LIMIT 1
+				) AS tsClose
+				FROM aggregate_per_minute AS table1
+				WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
+				GROUP BY companyId";
+			$rows = DB::select($sql);
+
+			foreach ($rows as $row) {
+				$companyId = $row->companyId;
+				$openPrice = $row->openPrice;
+				$highPrice = $row->highPrice;
+				$lowPrice = $row->lowPrice;
+				$closePrice = $row->closePrice;
+				$tsOpen = $row->tsOpen;
+				$tsHigh = $row->tsHigh;
+				$tsLow = $row->tsLow;
+				$tsClose = $row->tsClose;
+				$asOf = $myDate;
+
+				/*$id = DB::insert("INSERT INTO materialize_per_company_daily(companyId, openPrice, highPrice, lowPrice, closePrice, tsOpen, tsHigh, tsLow, tsClose, asOf)
+					VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					ON DUPLICATE KEY UPDATE openPrice = ?, highPrice = ?, lowPrice = ?, closePrice = ?, tsOpen = ?, tsHigh = ?, tsLow = ?, tsClose = ?",
+					[$companyId, $openPrice, $highPrice, $lowPrice, $closePrice, $tsOpen, $tsHigh, $tsLow, $tsClose, $asOf,
+						$openPrice, $highPrice, $lowPrice, $closePrice, $tsOpen, $tsHigh, $tsLow, $tsClose
+					]);*/
+				DB::statement("call sp_materialize_per_company_daily($companyId, $openPrice, $highPrice, $lowPrice, $closePrice, '$tsOpen', '$tsHigh', '$tsLow', '$tsClose', '$asOf')");
+			}
     	}
+    }
 
+    public function performEOD() {
+    	DB::statement("call sp_perform_eod()");
     }
 }
