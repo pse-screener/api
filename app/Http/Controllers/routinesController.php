@@ -35,15 +35,37 @@ class routinesController extends Controller
 		}
     }*/
 
+    private function createOrUpdateCompany($stock) {
+    	DB::insert("INSERT INTO companies(companyName, symbol, created_at) VALUES(?, ?, now())
+				ON DUPLICATE KEY UPDATE companyName = ?, symbol = ?", [$stock['name'], $stock['symbol'], $stock['name'], $stock['symbol']]);
+    }
+
     /* being ran every minute on weekdays. Will insert new record or update if record already exists. */
     public function downloadCompaniesAndPrices() {
+    	if (config('app.env') == "production") {
+    		if (date("N") > 5) {
+    			exit("Environment is production and doesn't fall in trading days.");
+    		}
+
+    		$currentDateTime = new DateTime(date("Y-m-d H:i:s"));	//today
+    		// note: give allowance.
+    		$am_trade_start = new DateTime(date("Y-m-d 09:29:00"));
+    		$am_trade_end = new DateTime(date("Y-m-d 12:02:00"));
+    		$pm_trade_start = new DateTime(date("Y-m-d 01:29:00"));
+    		$pm_trade_end = new DateTime(date("Y-m-d 15:32:00"));
+
+    		if (!($currentDateTime >= $am_trade_start && $currentDateTime <= $am_trade_end) || !($currentDateTime >= $pm_trade_start && $currentDateTime <= $pm_trade_end)) {
+    			exit("Environment is production and current time doesn't fall on trading hours.");
+    		}
+    	}
+
     	$client = new Client();
 
 		$response = $client->get('http://phisix-api4.appspot.com/stocks.json');
 		$data = json_decode($response->getBody(), TRUE);
 
 		if (!isset($data['as_of'])) {
-			exit();
+			exit("No data in upstream.");
 		}
 		
 		$stocks = $data['stock'];
@@ -55,37 +77,39 @@ class routinesController extends Controller
 		$asOfDateTime = $asOfDateOnly . " " . $asOfTimeOnly;
 		$asOfDateTime = \DateTime::createFromFormat('Y-m-d H:i:s', $asOfDateTime);
 
-		file_put_contents("/tmp/downloadCompaniesAndPrices.txt", date('Y-m-d H:i:s'));
+		// file_put_contents("/tmp/downloadCompaniesAndPrices.txt", date('Y-m-d H:i:s'));
 		
 		foreach ($stocks as $stock) {
-			Company::updateOrCreate(['companyName' => $stock['name'], 'symbol' => $stock['symbol']]);
+			// Company::updateOrCreate(['companyName' => $stock['name'], 'symbol' => $stock['symbol']]);
 
-			RawRecords::updateOrCreate([
+			$this->createOrUpdateCompany($stock);
+
+			/*RawRecords::updateOrCreate([
 				'symbol' => $stock['symbol'],
 				'amount' => $stock['price']['amount'],
 				'percentChange' => $stock['percent_change'],
 				'volume' => $stock['volume'],
 				'asOf' => $asOfDateTime,
-			]);
+			]);*/
+
+			DB::insert("INSERT INTO raw_records(symbol, amount, percentChange, volume, asOf, created_at) VALUES(?, ?, ?, ?, ?, now())
+				ON DUPLICATE KEY UPDATE symbol = ?, amount = ?, percentChange = ?, volume = ?, asOf = ?",
+				[$stock['symbol'], $stock['price']['amount'], $stock['percent_change'], $stock['volume'], $asOfDateTime,
+				$stock['symbol'], $stock['price']['amount'], $stock['percent_change'], $stock['volume'], $asOfDateTime]);
 		}
     }
 
     public function materializeRawDataPerMinute() {
-    	$rawRecords = RawRecords::whereRaw('materialized IS NULL OR materialized = 0')->get();
-
-    	// file_put_contents("/tmp/materializeRawDataPerMinute.txt", date('Y-m-d H:i:s'));
-    	// file_put_contents("/tmp/materializeRawDataPerMinute.txt", print_r($rawRecords, TRUE));
-    	// file_put_contents("/tmp/materializeRawDataPerMinute.txt", count($rawRecords));
-    	
+    	// $rawRecords = RawRecords::whereRaw('materialized IS NULL OR materialized = 0')->get();
+    	$rawRecords = DB::select("SELECT id, symbol, amount, percentChange, volume, asOf FROM raw_records WHERE materialized IS NULL OR materialized = 0");    	
     	
     	foreach ($rawRecords as $rawRecord) {
-    		// file_put_contents("/tmp/materializeRawDataPerMinute.txt", "OKay." . $rawRecord->symbol);	
+    		$rawRecordId = $rawRecord->id;
     		$symbol = $rawRecord->symbol;
     		$price = $rawRecord->amount;
-    		$asOf = $rawRecord->asOf;
     		$percentChange = $rawRecord->percentChange;
     		$volume = $rawRecord->volume;
-    		$rawRecordId = $rawRecord->id;
+    		$asOf = $rawRecord->asOf;
 
     		DB::statement("call sp_aggregate_per_minute('$symbol', $price, '$asOf', $percentChange, $volume, $rawRecordId)");
     	}
@@ -169,7 +193,6 @@ class routinesController extends Controller
     }
 
     public function performEOD() {
-    	// we have to check the time first before we execute this.
     	DB::statement("call sp_perform_eod()");
     }
 }

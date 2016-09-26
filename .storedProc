@@ -68,7 +68,7 @@ DELIMITER ;
 
 DELIMITER $$
 
-USE `pse_monitor_pmorcilladev`$$
+USE `pse_screener_pmorcilladev`$$
 
 DROP PROCEDURE IF EXISTS `sp_perform_eod`$$
 
@@ -76,7 +76,14 @@ CREATE DEFINER=`pmorcilladev`@`%` PROCEDURE `sp_perform_eod`()
 BEGIN
 	SET @disabledEOD = (SELECT disable_eod FROM system_settings WHERE id = 1);
 	IF (@disabledEOD = 0) THEN
-		UPDATE system_settings SET last_eod = (SELECT MAX(asOf) FROM materialize_per_company_daily), last_exec_eod = NOW();
+		SET @unmaterializedDate = (SELECT DATE_FORMAT(asOf, '%Y-%m-%d') AS asOf FROM aggregate_per_minute WHERE materialized IS NULL OR materialized = 0 GROUP BY asOf ORDER BY asOf LIMIT 1);
+		IF ((SELECT COUNT(@unmaterializedDate)) <= 0 ) THEN
+			SET @last_eod = (SELECT DATE_FORMAT(MAX(asOf), '%Y-%m-%d') FROM aggregate_per_minute WHERE materialized IS NOT NULL OR materialized = 1);
+			IF ((SELECT COUNT(@last_eod)) <= 0) THEN
+				-- if all are materialized already
+				UPDATE system_settings SET last_eod = @last_eod, last_exec_eod = NOW();
+			END IF;
+		END IF;
 	END IF;
 END$$
 

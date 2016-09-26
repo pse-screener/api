@@ -21,7 +21,8 @@ class CreateRawRecordsTable extends Migration
             $table->integer('volume');
             $table->datetime('asOf');
             $table->boolean('materialized')->nullable();
-            $table->timestamps();
+            $table->datetime('created_at');
+            $table->timestamp('updated_at')->default(DB::raw('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'));
 
             $table->unique(['symbol', 'amount', 'percentChange', 'volume', 'asOf']);
         });

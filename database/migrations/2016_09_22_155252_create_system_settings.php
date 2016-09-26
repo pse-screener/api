@@ -17,13 +17,13 @@ class CreateSystemSettings extends Migration
     {
         Schema::create('system_settings', function (Blueprint $table) {
             $table->increments('id');
-            $table->datetime('last_eod');
+            $table->date('last_eod');
             $table->boolean('disable_eod');
             $table->datetime('last_exec_eod');
         });
 
         DB::table('system_settings')->insert(array('last_eod' => '2016-09-23 16::00',
-            'disable_eod' => '0', 'last_exec_eod' => '2016-09-23 16::00')
+            'disable_eod' => 1, 'last_exec_eod' => '2016-09-23 16::00')
         );
     }
 
