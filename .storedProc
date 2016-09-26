@@ -1,6 +1,7 @@
 Stored proc
 
 1. 
+
 DELIMITER $$
 
 USE `pse_monitor_pmorcilladev`$$
@@ -18,17 +19,18 @@ CREATE DEFINER=`pmorcilladev`@`%` PROCEDURE `sp_aggregate_per_minute`(
 BEGIN
 	SET @currentDate = (SELECT DATE_FORMAT(var_asOf, '%Y-%m-%d'));
 	SET @companyId = (SELECT id FROM companies WHERE symbol = var_symbol);
-	SET @price = (SELECT `price` FROM aggregate_per_minute WHERE companyId = @companyId AND DATE_FORMAT(asOf, '%Y-%m-%d') = @currentDate ORDER BY id DESC LIMIT 1);
-	SET @countRows = (SELECT COUNT(@price));
-	IF (@countRows <= 0) THEN
-		SET @price = 0.00;
-	END IF;
-	
-	IF (var_price != @price) THEN
-		INSERT INTO aggregate_per_minute(companyId, price, asOf, percentChange, volume, created_at)
-			VALUES(@companyId, var_price, var_asOf, var_percentChange, var_volume, NOW());
-		-- tag as materialized
-		UPDATE raw_records SET materialized = 1 WHERE id = rawRecordId;
+	IF ((SELECT COUNT(@companyId)) > 0) THEN
+		SET @price = (SELECT `price` FROM aggregate_per_minute WHERE companyId = @companyId AND DATE_FORMAT(asOf, '%Y-%m-%d') = @currentDate ORDER BY id DESC LIMIT 1);
+		SET @countRows = (SELECT COUNT(@price));
+		IF (@countRows <= 0) THEN
+			SET @price = 0.00;
+		END IF;
+		IF (var_price != @price) THEN
+			INSERT INTO aggregate_per_minute(companyId, price, asOf, percentChange, volume, created_at)
+				VALUES(@companyId, var_price, var_asOf, var_percentChange, var_volume, NOW());
+			-- tag as materialized
+			UPDATE raw_records SET materialized = 1 WHERE id = rawRecordId;
+		END IF;
 	END IF;
 END$$
 
@@ -55,14 +57,14 @@ CREATE DEFINER=`pmorcilladev`@`%` PROCEDURE `sp_materialize_per_company_daily`(
 	IN asOf DATE
     )
 BEGIN
-	INSERT INTO materialize_per_company_daily(companyId, openPrice, highPrice, lowPrice, closePrice, tsOpen, tsHigh, tsLow, tsClose, asOf)
-		VALUES(companyId, openPrice, highPrice, lowPrice, closePrice, tsOpen, tsHigh, tsLow, tsClose, asOf)
+	INSERT INTO materialize_per_company_daily(companyId, openPrice, highPrice, lowPrice, closePrice, tsOpen, tsHigh, tsLow, tsClose, asOf, created_at)
+		VALUES(companyId, openPrice, highPrice, lowPrice, closePrice, tsOpen, tsHigh, tsLow, tsClose, asOf, NOW())
 		ON DUPLICATE KEY UPDATE openPrice = openPrice, highPrice = highPrice, lowPrice = lowPrice, closePrice = closePrice, tsOpen = tsOpen, tsHigh = tsHigh, tsLow = tsLow, tsClose = tsClose;
     END$$
 
 DELIMITER ;
 
-3. 
+3.
 
 DELIMITER $$
 

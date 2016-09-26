@@ -17,26 +17,34 @@ use GuzzleHttp\Client;
 class routinesController extends Controller
 {
 	/* This will insert new record or update if record already exists. */
-	public function downloadAllCompanies() {
+	/*public function downloadAllCompanies() {
     	$client = new Client(); //GuzzleHttp\Client
 
     	// http://phisix-api4.appspot.com/
 		$response = $client->get('http://phisix-api4.appspot.com/stocks.json');
 		$data = json_decode($response->getBody(), TRUE);
 
+		if (!isset($data['as_of'])) {
+			exit();
+		}
+
 		$stocks = $data['stock'];
 
 		foreach ($stocks as $stock) {
 			Company::updateOrCreate(['companyName' => $stock['name'], 'symbol' => $stock['symbol']]);
 		}
-    }
+    }*/
 
     /* being ran every minute on weekdays. Will insert new record or update if record already exists. */
-    public function downloadPrices() {
+    public function downloadCompaniesAndPrices() {
     	$client = new Client();
 
 		$response = $client->get('http://phisix-api4.appspot.com/stocks.json');
 		$data = json_decode($response->getBody(), TRUE);
+
+		if (!isset($data['as_of'])) {
+			exit();
+		}
 		
 		$stocks = $data['stock'];
 		$asOf = $data['as_of'];
@@ -46,8 +54,12 @@ class routinesController extends Controller
 		$asOfTimeOnly = $match[0];
 		$asOfDateTime = $asOfDateOnly . " " . $asOfTimeOnly;
 		$asOfDateTime = \DateTime::createFromFormat('Y-m-d H:i:s', $asOfDateTime);
+
+		file_put_contents("/tmp/downloadCompaniesAndPrices.txt", date('Y-m-d H:i:s'));
 		
 		foreach ($stocks as $stock) {
+			Company::updateOrCreate(['companyName' => $stock['name'], 'symbol' => $stock['symbol']]);
+
 			RawRecords::updateOrCreate([
 				'symbol' => $stock['symbol'],
 				'amount' => $stock['price']['amount'],
@@ -60,14 +72,20 @@ class routinesController extends Controller
 
     public function materializeRawDataPerMinute() {
     	$rawRecords = RawRecords::whereRaw('materialized IS NULL OR materialized = 0')->get();
+
+    	// file_put_contents("/tmp/materializeRawDataPerMinute.txt", date('Y-m-d H:i:s'));
+    	// file_put_contents("/tmp/materializeRawDataPerMinute.txt", print_r($rawRecords, TRUE));
+    	// file_put_contents("/tmp/materializeRawDataPerMinute.txt", count($rawRecords));
+    	
     	
     	foreach ($rawRecords as $rawRecord) {
-    		$symbol = $rawRecord['symbol'];
-    		$price = $rawRecord['amount'];
-    		$asOf = $rawRecord['asOf'];
-    		$percentChange = $rawRecord['percentChange'];
-    		$volume = $rawRecord['volume'];
-    		$rawRecordId = $rawRecord['id'];
+    		// file_put_contents("/tmp/materializeRawDataPerMinute.txt", "OKay." . $rawRecord->symbol);	
+    		$symbol = $rawRecord->symbol;
+    		$price = $rawRecord->amount;
+    		$asOf = $rawRecord->asOf;
+    		$percentChange = $rawRecord->percentChange;
+    		$volume = $rawRecord->volume;
+    		$rawRecordId = $rawRecord->id;
 
     		DB::statement("call sp_aggregate_per_minute('$symbol', $price, '$asOf', $percentChange, $volume, $rawRecordId)");
     	}
