@@ -169,6 +169,7 @@ class routinesController extends Controller
     }
 
     public function performEOD() {
+    	// we have to check the time first before we execute this.
     	DB::statement("call sp_perform_eod()");
     }
 }
