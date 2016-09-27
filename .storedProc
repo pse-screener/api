@@ -19,17 +19,18 @@ CREATE DEFINER=`pmorcilladev`@`%` PROCEDURE `sp_aggregate_per_minute`(
 BEGIN
 	SET @currentDate = (SELECT DATE_FORMAT(var_asOf, '%Y-%m-%d'));
 	SET @companyId = (SELECT id FROM companies WHERE symbol = var_symbol);
-	IF ((SELECT COUNT(@companyId)) > 0) THEN
+	IF ((SELECT FOUND_ROWS()) > 0) THEN
 		SET @price = (SELECT `price` FROM aggregate_per_minute WHERE companyId = @companyId AND DATE_FORMAT(asOf, '%Y-%m-%d') = @currentDate ORDER BY id DESC LIMIT 1);
-		SET @countRows = (SELECT COUNT(@price));
-		IF (@countRows <= 0) THEN
+		IF ((SELECT FOUND_ROWS()) <= 0) THEN
 			SET @price = 0.00;
 		END IF;
-		IF (var_price != @price) THEN
+		IF (var_price <> @price) THEN
 			INSERT INTO aggregate_per_minute(companyId, price, asOf, percentChange, volume, created_at)
 				VALUES(@companyId, var_price, var_asOf, var_percentChange, var_volume, NOW());
 			-- tag as materialized
-			UPDATE raw_records SET materialized = 1 WHERE id = rawRecordId;
+			IF ((SELECT ROW_COUNT()) = 1) THEN
+				UPDATE raw_records SET materialized = 1 WHERE id = rawRecordId;
+			END IF;
 		END IF;
 	END IF;
 END$$
@@ -60,7 +61,7 @@ BEGIN
 	INSERT INTO materialize_per_company_daily(companyId, openPrice, highPrice, lowPrice, closePrice, tsOpen, tsHigh, tsLow, tsClose, asOf, created_at)
 		VALUES(companyId, openPrice, highPrice, lowPrice, closePrice, tsOpen, tsHigh, tsLow, tsClose, asOf, NOW())
 		ON DUPLICATE KEY UPDATE openPrice = openPrice, highPrice = highPrice, lowPrice = lowPrice, closePrice = closePrice, tsOpen = tsOpen, tsHigh = tsHigh, tsLow = tsLow, tsClose = tsClose;
-    END$$
+END$$
 
 DELIMITER ;
 
@@ -77,9 +78,9 @@ BEGIN
 	SET @disabledEOD = (SELECT disable_eod FROM system_settings WHERE id = 1);
 	IF (@disabledEOD = 0) THEN
 		SET @unmaterializedDate = (SELECT DATE_FORMAT(asOf, '%Y-%m-%d') AS asOf FROM aggregate_per_minute WHERE materialized IS NULL OR materialized = 0 GROUP BY asOf ORDER BY asOf LIMIT 1);
-		IF ((SELECT COUNT(@unmaterializedDate)) <= 0 ) THEN
+		IF ((SELECT FOUND_ROWS()) <= 0 ) THEN
 			SET @last_eod = (SELECT DATE_FORMAT(MAX(asOf), '%Y-%m-%d') FROM aggregate_per_minute WHERE materialized IS NOT NULL OR materialized = 1);
-			IF ((SELECT COUNT(@last_eod)) <= 0) THEN
+			IF ((SELECT FOUND_ROWS()) <= 0) THEN
 				-- if all are materialized already
 				UPDATE system_settings SET last_eod = @last_eod, last_exec_eod = NOW();
 			END IF;
