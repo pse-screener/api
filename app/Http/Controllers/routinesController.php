@@ -28,12 +28,12 @@ class routinesController extends Controller
     			exit("Environment doesn't allow download raw data beyong trading hours.");
     		}
 
-    		$currentDateTime = new DateTime(date("Y-m-d H:i:s"));	//today
+    		$currentDateTime = new \DateTime(date("Y-m-d H:i:s"));	//today
     		// note: give allowance.
-    		$am_trade_start = new DateTime(date("Y-m-d 09:29:00"));
-    		$am_trade_end = new DateTime(date("Y-m-d 12:02:00"));
-    		$pm_trade_start = new DateTime(date("Y-m-d 01:29:00"));
-    		$pm_trade_end = new DateTime(date("Y-m-d 15:32:00"));
+    		$am_trade_start = new \DateTime(date("Y-m-d 09:29:00"));
+    		$am_trade_end = new \DateTime(date("Y-m-d 12:02:00"));
+    		$pm_trade_start = new \DateTime(date("Y-m-d 01:29:00"));
+    		$pm_trade_end = new \DateTime(date("Y-m-d 15:32:00"));
 
     		if (!($currentDateTime >= $am_trade_start && $currentDateTime <= $am_trade_end) || !($currentDateTime >= $pm_trade_start && $currentDateTime <= $pm_trade_end)) {
     			exit("Environment doesn't allow download raw data beyong trading hours.");
