@@ -16,25 +16,6 @@ use GuzzleHttp\Client;
 
 class routinesController extends Controller
 {
-	/* This will insert new record or update if record already exists. */
-	/*public function downloadAllCompanies() {
-    	$client = new Client(); //GuzzleHttp\Client
-
-    	// http://phisix-api4.appspot.com/
-		$response = $client->get('http://phisix-api4.appspot.com/stocks.json');
-		$data = json_decode($response->getBody(), TRUE);
-
-		if (!isset($data['as_of'])) {
-			exit();
-		}
-
-		$stocks = $data['stock'];
-
-		foreach ($stocks as $stock) {
-			Company::updateOrCreate(['companyName' => $stock['name'], 'symbol' => $stock['symbol']]);
-		}
-    }*/
-
     private function createOrUpdateCompany($stock) {
     	DB::insert("INSERT INTO companies(companyName, symbol, created_at) VALUES(?, ?, now())
 				ON DUPLICATE KEY UPDATE companyName = ?, symbol = ?", [$stock['name'], $stock['symbol'], $stock['name'], $stock['symbol']]);
@@ -42,9 +23,9 @@ class routinesController extends Controller
 
     /* being ran every minute on weekdays. Will insert new record or update if record already exists. */
     public function downloadCompaniesAndPrices() {
-    	if (config('app.env') == "production") {
+    	if (!config('app.download_raw_data_beyond_trading_window')) {
     		if (date("N") > 5) {
-    			exit("Environment is production and doesn't fall in trading days.");
+    			exit("Environment doesn't allow download raw data beyong trading hours.");
     		}
 
     		$currentDateTime = new DateTime(date("Y-m-d H:i:s"));	//today
@@ -55,7 +36,7 @@ class routinesController extends Controller
     		$pm_trade_end = new DateTime(date("Y-m-d 15:32:00"));
 
     		if (!($currentDateTime >= $am_trade_start && $currentDateTime <= $am_trade_end) || !($currentDateTime >= $pm_trade_start && $currentDateTime <= $pm_trade_end)) {
-    			exit("Environment is production and current time doesn't fall on trading hours.");
+    			exit("Environment doesn't allow download raw data beyong trading hours.");
     		}
     	}
 
@@ -76,8 +57,6 @@ class routinesController extends Controller
 		$asOfTimeOnly = $match[0];
 		$asOfDateTime = $asOfDateOnly . " " . $asOfTimeOnly;
 		$asOfDateTime = \DateTime::createFromFormat('Y-m-d H:i:s', $asOfDateTime);
-
-		// file_put_contents("/tmp/downloadCompaniesAndPrices.txt", date('Y-m-d H:i:s'));
 		
 		foreach ($stocks as $stock) {
 			// Company::updateOrCreate(['companyName' => $stock['name'], 'symbol' => $stock['symbol']]);
@@ -101,8 +80,9 @@ class routinesController extends Controller
 
     public function materializeRawDataPerMinute() {
     	// $rawRecords = RawRecords::whereRaw('materialized IS NULL OR materialized = 0')->get();
-    	$rawRecords = DB::select("SELECT id, symbol, amount, percentChange, volume, asOf FROM raw_records WHERE materialized IS NULL OR materialized = 0");    	
+    	$rawRecords = DB::select("SELECT id, symbol, amount, percentChange, volume, asOf FROM raw_records WHERE materialized IS NULL OR materialized = 0");
     	
+    	$counter = 0;
     	foreach ($rawRecords as $rawRecord) {
     		$rawRecordId = $rawRecord->id;
     		$symbol = $rawRecord->symbol;
@@ -111,7 +91,7 @@ class routinesController extends Controller
     		$volume = $rawRecord->volume;
     		$asOf = $rawRecord->asOf;
 
-    		DB::statement("call sp_aggregate_per_minute('$symbol', $price, '$asOf', $percentChange, $volume, $rawRecordId)");
+    		DB::insert("call sp_aggregate_per_minute('$symbol', $price, '$asOf', $percentChange, $volume, $rawRecordId)");
     	}
     }
 
@@ -128,67 +108,79 @@ class routinesController extends Controller
 
     		$myDate = $tableDate->asOf;
 
-			$sql = "SELECT companyId,
-				(SELECT price FROM aggregate_per_minute
-					WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
-					AND companyId = table1.companyId
-					ORDER BY asOf ASC LIMIT 1
-				) AS openPrice,
+    		$sql = "SELECT id FROM aggregate_per_minute WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = '$myDate'";
+    		$aggPerMinuteIds = db::select($sql);
 
-				MAX(price) AS highPrice, MIN(price) AS lowPrice,
+    		foreach ($aggPerMinuteIds as $aggPerMinuteId)
+    			$aggPerMinuteArrayIds[] = $aggPerMinuteId->id;
 
-				(SELECT price FROM aggregate_per_minute
-					WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
-					AND companyId = table1.companyId
-					ORDER BY asOf DESC LIMIT 1
-				) AS closePrice,
-				(SELECT asOf FROM aggregate_per_minute
-					WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
-					AND companyId = table1.companyId
-					ORDER BY asOf ASC LIMIT 1
-				) AS tsOpen,
-				(SELECT asOf  FROM aggregate_per_minute
-					WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
-					AND companyId = table1.companyId
-					GROUP BY asOf
-					ORDER BY MAX(price) DESC LIMIT 1
-				) AS tsHigh,
-				(SELECT asOf  FROM aggregate_per_minute
-					WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
-					AND companyId = table1.companyId
-					GROUP BY asOf
-					ORDER BY MIN(price) ASC LIMIT 1
-				) AS tsLow,
-				(SELECT asOf FROM aggregate_per_minute
-					WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
-					AND companyId = table1.companyId
-					ORDER BY asOf DESC LIMIT 1
-				) AS tsClose
-				FROM aggregate_per_minute AS table1
-				WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = DATE_FORMAT('$myDate', '%Y-%m-%d')
-				GROUP BY companyId";
-			$rows = DB::select($sql);
+    		$aggPerMinuteStringIds = implode(",", $aggPerMinuteArrayIds);
 
-			foreach ($rows as $row) {
-				$companyId = $row->companyId;
-				$openPrice = $row->openPrice;
-				$highPrice = $row->highPrice;
-				$lowPrice = $row->lowPrice;
-				$closePrice = $row->closePrice;
-				$tsOpen = $row->tsOpen;
-				$tsHigh = $row->tsHigh;
-				$tsLow = $row->tsLow;
-				$tsClose = $row->tsClose;
+    		$sql = "SELECT companies.symbol FROM companies JOIN aggregate_per_minute ON companies.id = aggregate_per_minute.companyId
+					WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = '$myDate' AND (materialized IS NULL OR materialized = 0)
+					GROUP BY companies.symbol";
+    		$symbolRows = db::select($sql);
+
+    		foreach ($symbolRows as $symbolRow) {
+    			$uri = "http://www.bloomberg.com/quote/$symbolRow->symbol:PM";
+    			$client = new Client();
+    			$response = $client->request('GET', $uri, [
+    				'headers' => [
+    					'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36',
+    					'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    				]
+    			]);
+
+				// $response = $client->get($uri);
+				// file_put_contents("/tmp/bloomberg.html", $response->getBody());
+				// $file_path = '/tmp/bloomberg.html';
+    			// $response_string = file_get_contents($file_path);
+
+    			$response_string = $response->getBody();
+    			file_put_contents("/tmp/pse_monitor/html_files/$symbolRow->symbol." . date("Y-m-d") . ".txt", $response_string);
+    		}
+
+    		foreach ($symbolRows as $symbolRow) {
+    			$file_string = "/tmp/pse_monitor/html_files/$symbolRow->symbol." . date("Y-m-d") . ".txt";
+    			$openPrice_regex = "/Open\s*<\/div>\s*<div\s*class=\"cell__value cell__value_\">([^<]*)<\/div>/";
+    			$highAndLowPrices_regex = "/Day Range <\/div> <div class=\"cell__value cell__value_\">([^<]*)<\/div>/";
+    			$closePrice_regex = "/<div\s*class=\"price\">([^<]*)<\/div>/";
+    			$lowPrice_regex = "/([^\-]*)/";
+    			$highPrice_regex = "/-(.*)/";
+
+    			preg_match($openPrice_regex, $file_string, $matches);
+    			$openPrice = trim($matches[1]);
+    			preg_match($highAndLowPrices_regex, $file_string, $matches);
+    			$highAndLowPrices = trim($matches[1]);
+    			preg_match($closePrice_regex, $file_string, $matches);
+    			$closePrice = trim($matches[1]);
+    			preg_match($lowPrice_regex, $highAndLowPrices, $matches);
+    			$lowPrice = $matches[1];
+    			preg_match($highPrice_regex, $highAndLowPrices, $matches);
+    			$highPrice = $matches[1];
+
+    			$companyData[] = array(
+    					"symbol" => $symbolRow->symbol,
+	    				"openPrice" => $openPrice,
+	    				"lowPrice" => $lowPrice,
+	    				"highPrice" => $highPrice,
+	    				"closePrice" => $closePrice,
+    			);
+    		}
+
+			foreach ($companyData as $row) {
+				$symbol = $row['symbol'];
+				$openPrice = $row['openPrice'];
+				$highPrice = $row['highPrice'];
+				$lowPrice = $row['lowPrice'];
+				$closePrice = $row['closePrice'];
 				$asOf = $myDate;
 
-				/*$id = DB::insert("INSERT INTO materialize_per_company_daily(companyId, openPrice, highPrice, lowPrice, closePrice, tsOpen, tsHigh, tsLow, tsClose, asOf)
-					VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-					ON DUPLICATE KEY UPDATE openPrice = ?, highPrice = ?, lowPrice = ?, closePrice = ?, tsOpen = ?, tsHigh = ?, tsLow = ?, tsClose = ?",
-					[$companyId, $openPrice, $highPrice, $lowPrice, $closePrice, $tsOpen, $tsHigh, $tsLow, $tsClose, $asOf,
-						$openPrice, $highPrice, $lowPrice, $closePrice, $tsOpen, $tsHigh, $tsLow, $tsClose
-					]);*/
-				DB::statement("call sp_materialize_per_company_daily($companyId, $openPrice, $highPrice, $lowPrice, $closePrice, '$tsOpen', '$tsHigh', '$tsLow', '$tsClose', '$asOf')");
+				DB::statement("call sp_materialize_per_company_daily('$symbol', $openPrice, $highPrice, $lowPrice, $closePrice, '$asOf')");
 			}
+
+			$sql = "UPDATE aggregate_per_minute SET materialized = 1 WHERE id IN ($aggPerMinuteStringIds)";
+			DB::update($sql);
     	}
     }
 

@@ -229,4 +229,6 @@ return [
 
     ],
 
+    'download_raw_data_beyond_trading_window' => env('DOWNLOAD_RAW_DATA_BEYONG_TRADING_WINDOW', false),
+
 ];

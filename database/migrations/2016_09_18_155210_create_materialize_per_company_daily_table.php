@@ -20,10 +20,6 @@ class CreateMaterializePerCompanyDailyTable extends Migration
             $table->decimal('highPrice', 16, 4);
             $table->decimal('lowPrice', 16, 4);
             $table->decimal('closePrice', 16, 4);
-            $table->datetime('tsOpen');
-            $table->datetime('tsHigh');
-            $table->datetime('tsLow');
-            $table->datetime('tsClose');
             $table->decimal('percentChange', 8, 4)->nullable();
             $table->integer('volume')->nullable();
             $table->date('asOf');
