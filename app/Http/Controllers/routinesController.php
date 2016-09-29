@@ -16,12 +16,7 @@ use GuzzleHttp\Client;
 
 class routinesController extends Controller
 {
-    private function createOrUpdateCompany($stock) {
-    	DB::insert("INSERT INTO companies(companyName, symbol, created_at) VALUES(?, ?, now())
-				ON DUPLICATE KEY UPDATE companyName = ?, symbol = ?", [$stock['name'], $stock['symbol'], $stock['name'], $stock['symbol']]);
-    }
-
-    /* being ran every minute on weekdays. Will insert new record or update if record already exists. */
+    /* being ran every minute on weekdays; Will dump into json file. */
     public function downloadCompaniesAndPrices() {
     	if (!config('app.download_raw_data_beyond_trading_window')) {
     		if (date("N") > 5) {
@@ -45,44 +40,65 @@ class routinesController extends Controller
 		$response = $client->get('http://phisix-api4.appspot.com/stocks.json');
 		$data = json_decode($response->getBody(), TRUE);
 
-		if (!isset($data['as_of'])) {
+		if (!isset($data['as_of']))
 			exit("No data in upstream.");
-		}
-		
-		$stocks = $data['stock'];
-		$asOf = $data['as_of'];
-		preg_match("/(\d{4}-\d{2}-\d{2})/", $asOf, $match);
-		$asOfDateOnly = $match[0];
-		preg_match("/(\d{2}:\d{2}:\d{2})/", $asOf, $match);
-		$asOfTimeOnly = $match[0];
-		$asOfDateTime = $asOfDateOnly . " " . $asOfTimeOnly;
-		$asOfDateTime = \DateTime::createFromFormat('Y-m-d H:i:s', $asOfDateTime);
-		
-		foreach ($stocks as $stock) {
-			// Company::updateOrCreate(['companyName' => $stock['name'], 'symbol' => $stock['symbol']]);
 
-			$this->createOrUpdateCompany($stock);
+        $asOf = $data['as_of'];
+        preg_match("/(\d{4}-\d{2}-\d{2})/", $asOf, $match);
+        $asOfDateOnly = $match[0];
+        preg_match("/(\d{2}:\d{2}:\d{2})/", $asOf, $match);
+        $asOfTimeOnly = $match[0];
 
-			/*RawRecords::updateOrCreate([
-				'symbol' => $stock['symbol'],
-				'amount' => $stock['price']['amount'],
-				'percentChange' => $stock['percent_change'],
-				'volume' => $stock['volume'],
-				'asOf' => $asOfDateTime,
-			]);*/
+        // now we want replace ":" to "_"
+        $pattern = '/:/';
+        $replacement = '_';
+        $formatedTime = preg_replace($pattern, $replacement, $asOfTimeOnly);
+        file_put_contents("/tmp/pse_monitor/raw_data/{$asOfDateOnly}T{$formatedTime}.json", json_encode($data));
+    }
 
-			DB::insert("INSERT INTO raw_records(symbol, amount, percentChange, volume, asOf, created_at) VALUES(?, ?, ?, ?, ?, now())
-				ON DUPLICATE KEY UPDATE symbol = ?, amount = ?, percentChange = ?, volume = ?, asOf = ?",
-				[$stock['symbol'], $stock['price']['amount'], $stock['percent_change'], $stock['volume'], $asOfDateTime,
-				$stock['symbol'], $stock['price']['amount'], $stock['percent_change'], $stock['volume'], $asOfDateTime]);
-		}
+    private function createOrUpdateCompany($stock) {
+        DB::insert("INSERT INTO companies(companyName, symbol, created_at) VALUES(?, ?, now())
+                ON DUPLICATE KEY UPDATE companyName = ?, symbol = ?", [$stock['name'], $stock['symbol'], $stock['name'], $stock['symbol']]);
+    }
+
+    /* Will insert new record or update if record already exists. */
+    public function harvestDownloadedCompaniesAndPrices() {
+        foreach (glob("/tmp/pse_monitor/raw_data/*.json") as $filename) {
+            $data = json_decode(file_get_contents($filename), TRUE);    // returns assoc array
+            $stocks = $data['stock'];
+            $asOf = $data['as_of'];
+            preg_match("/(\d{4}-\d{2}-\d{2})/", $asOf, $match);
+            $asOfDateOnly = $match[0];
+            preg_match("/(\d{2}:\d{2}:\d{2})/", $asOf, $match);
+            $asOfTimeOnly = $match[0];
+            $asOfDateTime = $asOfDateOnly . " " . $asOfTimeOnly;
+            $asOfDateTime = \DateTime::createFromFormat('Y-m-d H:i:s', $asOfDateTime);
+            
+            foreach ($stocks as $stock) {
+                // Company::updateOrCreate(['companyName' => $stock['name'], 'symbol' => $stock['symbol']]);
+
+                $this->createOrUpdateCompany($stock);
+
+                /*RawRecords::updateOrCreate([
+                    'symbol' => $stock['symbol'],
+                    'amount' => $stock['price']['amount'],
+                    'percentChange' => $stock['percent_change'],
+                    'volume' => $stock['volume'],
+                    'asOf' => $asOfDateTime,
+                ]);*/
+
+                DB::insert("INSERT INTO raw_records(symbol, amount, percentChange, volume, asOf, created_at) VALUES(?, ?, ?, ?, ?, now())
+                    ON DUPLICATE KEY UPDATE symbol = ?, amount = ?, percentChange = ?, volume = ?, asOf = ?",
+                    [$stock['symbol'], $stock['price']['amount'], $stock['percent_change'], $stock['volume'], $asOfDateTime,
+                    $stock['symbol'], $stock['price']['amount'], $stock['percent_change'], $stock['volume'], $asOfDateTime]);
+            }
+        }
     }
 
     public function materializeRawDataPerMinute() {
     	// $rawRecords = RawRecords::whereRaw('materialized IS NULL OR materialized = 0')->get();
     	$rawRecords = DB::select("SELECT id, symbol, amount, percentChange, volume, asOf FROM raw_records WHERE materialized IS NULL OR materialized = 0");
-    	
-    	$counter = 0;
+
     	foreach ($rawRecords as $rawRecord) {
     		$rawRecordId = $rawRecord->id;
     		$symbol = $rawRecord->symbol;
