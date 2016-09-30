@@ -8,8 +8,8 @@ use App\Http\Requests;*/
 
 use Illuminate\Support\Facades\DB;
 
-use \App\Company as Company;
-use \App\Raw_records as RawRecords;
+// use \App\Company as Company;
+// use \App\Raw_records as RawRecords;
 
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Client;
@@ -57,6 +57,7 @@ class routinesController extends Controller
     }
 
     private function createOrUpdateCompany(Array $stock) {
+        // Company::updateOrCreate(['companyName' => $stock['name'], 'symbol' => $stock['symbol'], 'created_at' => date('Y-m-d H:i:s')]);
         DB::insert("INSERT INTO companies(companyName, symbol, created_at) VALUES(?, ?, now())
                 ON DUPLICATE KEY UPDATE companyName = ?, symbol = ?", [$stock['name'], $stock['symbol'], $stock['name'], $stock['symbol']]);
     }
@@ -75,8 +76,6 @@ class routinesController extends Controller
             $asOfDateTime = \DateTime::createFromFormat('Y-m-d H:i:s', $asOfDateTime);
             
             foreach ($stocks as $stock) {
-                // Company::updateOrCreate(['companyName' => $stock['name'], 'symbol' => $stock['symbol']]);
-
                 $this->createOrUpdateCompany($stock);
 
                 /*RawRecords::updateOrCreate([
@@ -85,6 +84,7 @@ class routinesController extends Controller
                     'percentChange' => $stock['percent_change'],
                     'volume' => $stock['volume'],
                     'asOf' => $asOfDateTime,
+                    'created_at' => date('Y-m-d H:i:s'),
                 ]);*/
 
                 DB::insert("INSERT INTO raw_records(symbol, amount, percentChange, volume, asOf, created_at) VALUES(?, ?, ?, ?, ?, now())
@@ -93,7 +93,8 @@ class routinesController extends Controller
                     $stock['symbol'], $stock['price']['amount'], $stock['percent_change'], $stock['volume'], $asOfDateTime]);
             }
 
-            unlink($filename);
+            $basename = basename($filename);
+            rename($filename, "/tmp/pse_monitor/raw_data/processed/$basename");
         }
     }
 
