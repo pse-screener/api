@@ -21,6 +21,9 @@ class CreateUsersTable extends Migration
             $table->string('email')->unique();
             $table->string('password');
             $table->string('mobileNo', 11)->unique();
+            $table->boolean('active')->default(1);
+            $table->boolean('activated')->default(0);
+            $table->datetime('tsActivated')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

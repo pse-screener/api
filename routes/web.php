@@ -24,7 +24,7 @@ Route::group(['middleware' => 'auth:api'], function() {
 		// none
 	});
 
-	Route::resource('dashboard', 'DashboardController');
+	Route::resource('/company', 'CompanyController');
 });
 
 Route::get('/downloadCompaniesAndPrices', 'routinesController@downloadCompaniesAndPrices');
