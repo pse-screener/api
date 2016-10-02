@@ -53,7 +53,7 @@ class routinesController extends Controller
         $pattern = '/:/';
         $replacement = '_';
         $formatedTime = preg_replace($pattern, $replacement, $asOfTimeOnly);
-        file_put_contents("/tmp/pse_monitor/raw_data/{$asOfDateOnly}T{$formatedTime}.json", json_encode($data));
+        file_put_contents("/var/log/pse_monitor/raw_data/{$asOfDateOnly}T{$formatedTime}.json", json_encode($data));
     }
 
     private function createOrUpdateCompany(Array $stock) {
@@ -64,7 +64,7 @@ class routinesController extends Controller
 
     /* Will insert new record or update if record already exists. */
     public function harvestDownloadedCompaniesAndPrices() {
-        foreach (glob("/tmp/pse_monitor/raw_data/*.json") as $filename) {
+        foreach (glob("/var/log/pse_monitor/raw_data/*.json") as $filename) {
             $data = json_decode(file_get_contents($filename), TRUE);    // returns assoc array
             $stocks = $data['stock'];
             $asOf = $data['as_of'];
@@ -94,7 +94,7 @@ class routinesController extends Controller
             }
 
             $basename = basename($filename);
-            rename($filename, "/tmp/pse_monitor/raw_data/processed/$basename");
+            rename($filename, "/var/log/pse_monitor/raw_data/processed/$basename");
         }
     }
 
@@ -166,13 +166,13 @@ class routinesController extends Controller
     			// $response_string = file_get_contents($file_path);
 
     			$response_string = $response->getBody();
-    			file_put_contents("/tmp/pse_monitor/html_files/$symbolRow->symbol." . date("Y-m-d") . ".txt", $response_string);
+    			file_put_contents("/var/log/pse_monitor/html_files/$symbolRow->symbol." . date("Y-m-d") . ".txt", $response_string);
                 // exit();
     		}
 
             
     		foreach ($symbolRows as $symbolRow) {
-    			$file_string = "/tmp/pse_monitor/html_files/$symbolRow->symbol." . date("Y-m-d") . ".txt";
+    			$file_string = "/var/log/pse_monitor/html_files/$symbolRow->symbol." . date("Y-m-d") . ".txt";
     			$openPrice_regex = "/Open\s*<\/div>\s*<div\s*class=\"cell__value cell__value_\">([^<]*)<\/div>/";
     			$highAndLowPrices_regex = "/Day Range <\/div> <div class=\"cell__value cell__value_\">([^<]*)<\/div>/";
     			$closePrice_regex = "/<div\s*class=\"price\">([^<]*)<\/div>/";

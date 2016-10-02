@@ -19,7 +19,7 @@ class CompanyController extends Controller
      */
     public function index()
     {
-        $companies = Companies::select('symbol', 'companyName')->get();
+        $companies = Companies::select('id', 'symbol')->get();
         return response()->json($companies);
     }
 
@@ -50,9 +50,9 @@ class CompanyController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($symbol)
+    public function show($companyId)
     {
-        $company = Companies::where('symbol', $symbol)->select('companyName')->get();
+        $company = Companies::where('id', $companyId)->select('companyName')->get();
         return response()->json($company);
     }
 

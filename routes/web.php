@@ -27,6 +27,8 @@ Route::group(['middleware' => 'auth:api'], function() {
 	Route::resource('/company', 'CompanyController');
 });
 
+Route::resource('/alert', 'AlertController');
+
 Route::get('/downloadCompaniesAndPrices', 'routinesController@downloadCompaniesAndPrices');
 Route::get('/harvestDownloadedCompaniesAndPrices', 'routinesController@harvestDownloadedCompaniesAndPrices');
 Route::get('/materializeRawDataPerMinute', 'routinesController@materializeRawDataPerMinute');

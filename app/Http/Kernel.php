@@ -32,6 +32,8 @@ class Kernel extends HttpKernel
             // Removed to allow RESTful service i.e. no _token param
             // \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+
+            \Laravel\Passport\Http\Middleware\CreateFreshApiToken::class,
         ],
 
         'api' => [

@@ -17,8 +17,12 @@ class CreateAlertsTable extends Migration
             $table->increments('id');
             $table->integer('userId');
             $table->string('subscriptionId');
-            $table->decimal('alertAbovePrice', 8, 2);
-            $table->decimal('alertBelowPrice', 8, 2);
+            $table->integer('companyId');
+            $table->enum('alertCondition', ['movesAbove', 'movesBelow']);
+            $table->decimal('price', 8, 2);
+            $table->boolean('sentAlert')->default(0);
+            $table->boolean('sentToSms')->default(0);
+            $table->boolean('sentToEmail')->default(0);
             $table->timestamps();
         });
     }

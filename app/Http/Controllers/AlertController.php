@@ -2,12 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use Validator;
+
 use Illuminate\Http\Request;
 
-use App\Http\Requests;
+// use App\Http\Requests;
+
+// use App\User;
+
+use Illuminate\Support\Facades\Auth;
+// use Illuminate\Auth\GuardHelpers;
+// use Illuminate\Foundation\Auth\RegistersUsers;
 
 class AlertController extends Controller
 {
+    // use GuardHelpers;
+    // use RegistersUsers;
     /**
      * Display a listing of the resource.
      *
@@ -36,7 +46,20 @@ class AlertController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $this->validate($request, [
+            'companyId' => 'bail|required|max:3',
+            'priceCondition' => 'required|in:MA,MB',
+            'price' => 'required|numeric',
+        ]);
+
+        // this may not be the correct way. Probably be using the scrf_token so that 
+        // /// $user = Auth::user(); will work. Let's see.
+        $header = $request->header('Authorization');
+        // sample output: "Bearer 23fa89991653677fa4708393b0f767b2ee319d48ff35fb802e3ba09311ff0c5b74a47695e9b2c615"
+
+        return response()->json($header);
+
+        // file_put_contents("/tmp/user.txt", print_r($user, TRUE));
     }
 
     /**

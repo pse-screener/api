@@ -4,7 +4,7 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Sms_alerts extends Model
+class Alerts extends Model
 {
     //
 }
