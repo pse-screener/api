@@ -18,19 +18,3 @@ Route::get('/', function () {
 Auth::routes();
 
 Route::get('/home', 'HomeController@index');
-
-Route::group(['middleware' => 'auth:api'], function() {
-	Route::get('/verify_token', function() {
-		// none
-	});
-
-	Route::resource('/company', 'CompanyController');
-});
-
-Route::resource('/alert', 'AlertController');
-
-Route::get('/downloadCompaniesAndPrices', 'routinesController@downloadCompaniesAndPrices');
-Route::get('/harvestDownloadedCompaniesAndPrices', 'routinesController@harvestDownloadedCompaniesAndPrices');
-Route::get('/materializeRawDataPerMinute', 'routinesController@materializeRawDataPerMinute');
-Route::get('/materializeForPerCompanyDaily', 'routinesController@materializeForPerCompanyDaily');
-Route::get('/performEOD', 'routinesController@performEOD');

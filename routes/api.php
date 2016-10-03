@@ -16,3 +16,21 @@ use Illuminate\Http\Request;
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:api');
+
+/* Started here.
+*  Note: Authentication is already done automatically in RouteServiceProvider.
+*/
+
+Route::get('/verify_token', function() {
+	// none
+});
+
+Route::resource('/company', 'CompanyController');
+
+Route::resource('/alert', 'AlertController');
+
+Route::get('/downloadCompaniesAndPrices', 'routinesController@downloadCompaniesAndPrices');
+Route::get('/harvestDownloadedCompaniesAndPrices', 'routinesController@harvestDownloadedCompaniesAndPrices');
+Route::get('/materializeRawDataPerMinute', 'routinesController@materializeRawDataPerMinute');
+Route::get('/materializeForPerCompanyDaily', 'routinesController@materializeForPerCompanyDaily');
+Route::get('/performEOD', 'routinesController@performEOD');
