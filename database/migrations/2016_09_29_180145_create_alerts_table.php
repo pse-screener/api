@@ -15,15 +15,18 @@ class CreateAlertsTable extends Migration
     {
         Schema::create('alerts', function (Blueprint $table) {
             $table->increments('id');
-            $table->integer('userId');
+            // $table->integer('userId');
             $table->string('subscriptionId');
             $table->integer('companyId');
             $table->enum('alertCondition', ['movesAbove', 'movesBelow']);
             $table->decimal('price', 8, 2);
-            $table->boolean('sentAlert')->default(0);
             $table->boolean('sentToSms')->default(0);
             $table->boolean('sentToEmail')->default(0);
+            $table->boolean('sendSms')->default(0);
+            $table->boolean('sendEmail')->default(0);
             $table->timestamps();
+
+            $table->unique(['companyId', 'alertCondition']);
         });
     }
 

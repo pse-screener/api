@@ -40,13 +40,40 @@ class AlertController extends Controller
      */
     public function store(Request $request)
     {
-        $user = \Auth::user();
-
         $this->validate($request, [
             'companyId' => 'bail|required|max:3',
             'priceCondition' => 'required|in:MA,MB',
             'price' => 'required|numeric',
         ]);
+
+        if ($request->priceCondition == "MA")
+            $request->priceCondition = "movesAbove";
+        elseif ($request->priceCondition == "MB")
+            $request->priceCondition = "movesBelow";
+        else
+            exit(); //we don't allow though this has been checked in validate() above.
+
+        $user = \Auth::user();
+        // SELECT * FROM subscription WHERE userId = 1 AND DATE_FORMAT(validUntil, '%Y-%m-%d') >= DATE_FORMAT(NOW(), '%Y-%m-%d');
+        $subscriptions = \App\Subscriptions::whereRaw("DATE_FORMAT(validUntil, '%Y-%m-%d') >= DATE_FORMAT(NOW(), '%Y-%m-%d')")
+                        ->select('id')
+                        ->where("userId", $user->id)
+                        ->get();
+
+        
+        foreach ($subscriptions as $subscription) {
+            $alert =  \App\Alerts::firstOrNew(['companyId' => $request->companyId, 'priceCondition' => $request->priceCondition]);
+            $alert->subscriptionId = $subscription->id;
+            $alert->companyId = $request->companyId;
+            $alert->priceCondition = $request->priceCondition;
+            $alert->price = $request->price;
+            $alert->sendSms = 1;
+            $alert->sendEmail = 1;
+
+            $alert->save();
+
+            break;  // no matter how many subscription, we only need 1 entry.
+        }
     }
 
     /**
