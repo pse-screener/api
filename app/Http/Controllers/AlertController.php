@@ -74,6 +74,8 @@ class AlertController extends Controller
 
             break;  // no matter how many subscription, we only need 1 entry.
         }
+
+        return response()->json(["code" => 0, "message" => "Successful."]);
     }
 
     /**
