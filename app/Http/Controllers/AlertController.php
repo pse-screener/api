@@ -20,7 +20,9 @@ class AlertController extends Controller
     public function index()
     {
         $user = \Auth::user();
-        $alerts = \App\Alerts::select('compan')
+        // $alerts = \App\Users::where("id", $user->id)->alerts;
+        $alerts = \App\Users::find($user->id)->alerts;
+        return response()->json($alerts);
     }
 
     /**

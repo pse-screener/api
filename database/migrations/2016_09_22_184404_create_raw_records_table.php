@@ -18,7 +18,7 @@ class CreateRawRecordsTable extends Migration
             $table->string('symbol');
             $table->decimal('amount', 16, 4);
             $table->decimal('percentChange', 8, 4);
-            $table->integer('volume');
+            $table->bigInteger('volume');
             $table->datetime('asOf');
             $table->boolean('materialized')->nullable();
             $table->datetime('created_at');

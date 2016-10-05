@@ -19,7 +19,7 @@ class CreateAggregatePerMinuteTable extends Migration
             $table->decimal('price', 16, 4);
             $table->datetime('asOf');
             $table->decimal('percentChange', 8, 4);
-            $table->integer('volume');
+            $table->bigInteger('volume');
             $table->boolean('materialized')->nullable();
             $table->datetime('created_at');
             $table->timestamp('updated_at')->default(DB::raw('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'));

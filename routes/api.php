@@ -28,9 +28,3 @@ Route::get('/verify_token', function() {
 Route::resource('/company', 'CompanyController');
 
 Route::resource('/alert', 'AlertController');
-
-Route::get('/downloadCompaniesAndPrices', 'routinesController@downloadCompaniesAndPrices');
-Route::get('/harvestDownloadedCompaniesAndPrices', 'routinesController@harvestDownloadedCompaniesAndPrices');
-Route::get('/materializeRawDataPerMinute', 'routinesController@materializeRawDataPerMinute');
-Route::get('/materializeForPerCompanyDaily', 'routinesController@materializeForPerCompanyDaily');
-Route::get('/performEOD', 'routinesController@performEOD');

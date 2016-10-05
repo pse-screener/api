@@ -18,7 +18,7 @@ class Subscriptions extends Migration
             $table->integer('userId');
             $table->string('subscriptionRef');
             $table->string('PaidFromMerchant');
-            $table->decimal('amountPaid', 8, 2);
+            $table->decimal('amountPaid', 8, 4);
             $table->datetime('validUntil');
             $table->timestamps();
         });

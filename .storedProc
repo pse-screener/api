@@ -13,7 +13,7 @@ CREATE DEFINER=`pmorcilladev`@`%` PROCEDURE `sp_aggregate_per_minute`(
 	IN var_price DECIMAL(16, 4),
 	IN var_asOf DATETIME,
 	IN var_percentChange DECIMAL(8, 4),
-	IN var_volume INT(11),
+	IN var_volume BIGINT(11),
 	IN rawRecordId INT(11)
 )
 BEGIN

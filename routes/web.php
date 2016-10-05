@@ -18,3 +18,10 @@ Route::get('/', function () {
 Auth::routes();
 
 Route::get('/home', 'HomeController@index');
+
+/* Actually we want to add constraints that only to be ran locally. */
+Route::get('/downloadCompaniesAndPrices', 'routinesController@downloadCompaniesAndPrices');
+Route::get('/harvestDownloadedCompaniesAndPrices', 'routinesController@harvestDownloadedCompaniesAndPrices');
+Route::get('/materializeRawDataPerMinute', 'routinesController@materializeRawDataPerMinute');
+Route::get('/materializeForPerCompanyDaily', 'routinesController@materializeForPerCompanyDaily');
+Route::get('/performEOD', 'routinesController@performEOD');

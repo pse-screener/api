@@ -21,7 +21,7 @@ class CreateMaterializePerCompanyDailyTable extends Migration
             $table->decimal('lowPrice', 16, 4);
             $table->decimal('closePrice', 16, 4);
             $table->decimal('percentChange', 8, 4)->nullable();
-            $table->integer('volume')->nullable();
+            $table->bigInteger('volume')->nullable();
             $table->date('asOf');
             $table->datetime('created_at');
             $table->timestamp('updated_at')->default(DB::raw('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'));
