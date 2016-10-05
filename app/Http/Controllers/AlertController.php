@@ -19,7 +19,8 @@ class AlertController extends Controller
      */
     public function index()
     {
-        //
+        $user = \Auth::user();
+        $alerts = \App\Alerts::select('compan')
     }
 
     /**
@@ -40,6 +41,8 @@ class AlertController extends Controller
      */
     public function store(Request $request)
     {
+        str_replace(',', '' , $request->price); // remove commas on price.
+
         $this->validate($request, [
             'companyId' => 'bail|required|max:3',
             'priceCondition' => 'required|in:MA,MB',
