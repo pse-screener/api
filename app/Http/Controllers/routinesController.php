@@ -8,14 +8,22 @@ use App\Http\Requests;*/
 
 use Illuminate\Support\Facades\DB;
 
-// use \App\Company as Company;
-// use \App\Raw_records as RawRecords;
-
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Client;
 
 class routinesController extends Controller
 {
+    public function __construct() {
+        $allowedFromScripts = array(
+            'downloadCompaniesAndPrices.php',
+            'harvestDownloadedCompaniesAndPrices.php',
+            'materializeRawDataPerMinute.php',
+        );
+
+        if (!in_array(basename($_SERVER['SCRIPT_FILENAME']), $allowedFromScripts))
+            exit("Only run if we're started from one of the command line scripts.");
+    }
+
     /* being ran every minute on weekdays; Will dump into json file. */
     public function downloadCompaniesAndPrices() {
     	if (!config('app.download_raw_data_beyond_trading_window')) {
