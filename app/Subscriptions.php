@@ -8,6 +8,6 @@ class Subscriptions extends Model
 {
     public function alerts()
     {
-    	return $this->hasMany('App\Alert', 'subscriptionId');
+    	// return $this->hasMany('App\Alert', 'subscriptionId');
     }
 }
