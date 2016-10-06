@@ -15,8 +15,8 @@ class CreateAlertsTable extends Migration
     {
         Schema::create('alerts', function (Blueprint $table) {
             $table->increments('id');
-            $table->string('subscriptionId');
-            $table->integer('companyId');
+            $table->integer('subscriptionId')->unsigned();
+            $table->integer('companyId')->unsigned();
             $table->enum('alertCondition', ['movesAbove', 'movesBelow']);
             $table->decimal('price', 8, 2);
             $table->boolean('sentToSms')->default(0);
@@ -26,7 +26,6 @@ class CreateAlertsTable extends Migration
             $table->timestamps();
 
             $table->unique(['companyId', 'alertCondition', 'subscriptionId']);
-            $table->foreign('subscriptionId')->references('id')->on('subscriptions');
             $table->foreign('companyId')->references('id')->on('companies');
         });
     }
