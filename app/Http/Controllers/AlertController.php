@@ -69,6 +69,9 @@ class AlertController extends Controller
                         ->where("userId", $user->id)
                         ->get();
 
+        if (!$subscriptions)
+            return response()->json(["code" => 1, "message" => "Subscriptions has already been expired."]);
+
         
         foreach ($subscriptions as $subscription) {
             $alert =  \App\Alerts::firstOrNew(['companyId' => $request->companyId, 'priceCondition' => $request->priceCondition]);
