@@ -69,8 +69,9 @@ class AlertController extends Controller
                         ->where("userId", $user->id)
                         ->get();
 
-        if (!$subscriptions)
-            return response()->json(["code" => 1, "message" => "Subscriptions has already been expired."]);
+        file_put_contents("/tmp/alert.txt", print_r($subscriptions, true));
+        if (!count($subscriptions))
+            return response()->json(["code" => 1, "message" => "No active subscription."]);
 
         
         foreach ($subscriptions as $subscription) {

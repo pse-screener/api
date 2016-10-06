@@ -29,8 +29,8 @@ class Kernel extends HttpKernel
             \Illuminate\Session\Middleware\StartSession::class,
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             
-            // Removed to allow RESTful service i.e. no _token param (VerifyCsrfToken was added again and seems everything's okay.)
-            \App\Http\Middleware\VerifyCsrfToken::class,
+            // Removed to allow RESTful service i.e. no _token param
+            // \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
 
             \Laravel\Passport\Http\Middleware\CreateFreshApiToken::class,
