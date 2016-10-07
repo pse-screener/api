@@ -17,7 +17,7 @@ class CreateAlertsTable extends Migration
             $table->increments('id');
             $table->integer('subscriptionId')->unsigned();
             $table->integer('companyId')->unsigned();
-            $table->enum('alertCondition', ['movesAbove', 'movesBelow']);
+            $table->enum('priceCondition', ['movesAbove', 'movesBelow']);
             $table->decimal('price', 8, 2);
             $table->boolean('sentToSms')->default(0);
             $table->boolean('sentToEmail')->default(0);
@@ -25,7 +25,7 @@ class CreateAlertsTable extends Migration
             $table->boolean('sendEmail')->default(0);
             $table->timestamps();
 
-            $table->unique(['companyId', 'alertCondition', 'subscriptionId']);
+            $table->unique(['companyId', 'priceCondition', 'subscriptionId']);
             $table->foreign('companyId')->references('id')->on('companies');
         });
     }

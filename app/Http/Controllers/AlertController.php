@@ -39,13 +39,7 @@ class AlertController extends Controller
         //
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
+    private function checkData($request)
     {
         str_replace(',', '' , $request->price); // remove commas on price.
 
@@ -63,19 +57,33 @@ class AlertController extends Controller
             exit(); //we don't allow though this has been checked in validate() above.
 
         $user = \Auth::user();
-        // SELECT * FROM subscription WHERE userId = 1 AND DATE_FORMAT(validUntil, '%Y-%m-%d') >= DATE_FORMAT(NOW(), '%Y-%m-%d');
         $subscriptions = \App\Subscriptions::whereRaw("DATE_FORMAT(validUntil, '%Y-%m-%d') >= DATE_FORMAT(NOW(), '%Y-%m-%d')")
                         ->select('id')
                         ->where("userId", $user->id)
                         ->get();
 
-        file_put_contents("/tmp/alert.txt", print_r($subscriptions, true));
         if (!count($subscriptions))
             return response()->json(["code" => 1, "message" => "No active subscription."]);
 
+        return $subscriptions;
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function store(Request $request)
+    {
+        $subscriptions = $this->checkData($request);
         
         foreach ($subscriptions as $subscription) {
-            $alert =  \App\Alerts::firstOrNew(['companyId' => $request->companyId, 'priceCondition' => $request->priceCondition]);
+            $alert =  \App\Alerts::firstOrNew([
+                'companyId' => $request->companyId,
+                'priceCondition' => $request->priceCondition,
+                'subscriptionId' => $subscription->id
+            ]);
             $alert->subscriptionId = $subscription->id;
             $alert->companyId = $request->companyId;
             $alert->priceCondition = $request->priceCondition;
@@ -122,7 +130,33 @@ class AlertController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+        $this->validate($request, [
+            'symbol' => 'bail|required',
+        ]);
+
+        $companyId = \App\Company::where('symbol', $request->symbol)->select('id')->get()[0]['id'];
+        if(!$companyId)
+            return response()->json(["code" => 1, "message" => "Company id not found."]);
+
+        $request->request->add(['companyId' => $companyId]);
+
+        $subscriptions = $this->checkData($request);
+        
+        foreach ($subscriptions as $subscription) {
+            $alert =  \App\Alerts::find($id);
+            $alert->subscriptionId = $subscription->id;
+            $alert->companyId = $request->companyId;
+            $alert->priceCondition = $request->priceCondition;
+            $alert->price = $request->price;
+            $alert->sendSms = 1;
+            $alert->sendEmail = 1;
+
+            $alert->save();
+
+            break;  // no matter how many subscription, we only need 1 entry.
+        }
+
+        return response()->json(["code" => 0, "message" => "Successful."]);
     }
 
     /**
