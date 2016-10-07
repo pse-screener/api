@@ -79,11 +79,16 @@ class RegisterController extends Controller
 
     public function register(Request $request)
     {
-        $this->validator($request->all())->validate();
+        /*$prefix = substr($request->mobileNo, 0, 4);
+        $id = \App\Telcos::where('mobilePrefix', $prefix)->select('id')->get();
+        if (!count($id))
+            return response()->json(['code' => 1, 'message' => 'Unknown network.']);
+        */
+
+        // $this->validator($request->all())->validate();
 
         $this->guard()->login($this->create($request->all()));
 
-        // return redirect($this->redirectPath());
-        return response()->json(["code" => "0", "message" => "Registration successful."]);
+        return response()->json(["code" => 0, "message" => "Registration successful."]);
     }
 }
