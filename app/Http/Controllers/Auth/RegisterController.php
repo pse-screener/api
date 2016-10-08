@@ -79,13 +79,12 @@ class RegisterController extends Controller
 
     public function register(Request $request)
     {
-        /*$prefix = substr($request->mobileNo, 0, 4);
+        $prefix = substr($request->mobileNo, 0, 4);
         $id = \App\Telcos::where('mobilePrefix', $prefix)->select('id')->get();
         if (!count($id))
-            return response()->json(['code' => 1, 'message' => 'Unknown network.']);
-        */
+            return response()->json(['code' => 1, 'message' => 'Unknown mobile network.']);        
 
-        // $this->validator($request->all())->validate();
+        $this->validator($request->all())->validate();
 
         $this->guard()->login($this->create($request->all()));
 
