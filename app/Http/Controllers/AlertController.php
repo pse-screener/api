@@ -62,9 +62,6 @@ class AlertController extends Controller
                         ->where("userId", $user->id)
                         ->get();
 
-        if (!count($subscriptions))
-            return response()->json(["code" => 1, "message" => "No active subscription."]);
-
         return $subscriptions;
     }
 
@@ -77,6 +74,9 @@ class AlertController extends Controller
     public function store(Request $request)
     {
         $subscriptions = $this->checkData($request);
+
+        if ($subscriptions->count() == 0)
+            return response()->json(["code" => 1, "message" => "No active subscription."]);
         
         foreach ($subscriptions as $subscription) {
             $alert =  \App\Alerts::firstOrNew([

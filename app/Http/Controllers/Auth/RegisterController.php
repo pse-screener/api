@@ -86,7 +86,8 @@ class RegisterController extends Controller
 
         $this->validator($request->all())->validate();
 
-        $this->guard()->login($this->create($request->all()));
+        // $this->guard()->login($this->create($request->all()));
+        // $this->create($request->all());
 
         return response()->json(["code" => 0, "message" => "Registration successful."]);
     }
