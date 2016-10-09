@@ -75,6 +75,8 @@ class RegisterController extends Controller
             'password' => bcrypt($data['password']),
             'mobileNo' => $data['mobileNo'],
         ]);
+
+        // after creating user, we should create a 15- or 30-day free subscription.
     }
 
     public function register(Request $request)
@@ -87,7 +89,7 @@ class RegisterController extends Controller
         $this->validator($request->all())->validate();
 
         // $this->guard()->login($this->create($request->all()));
-        // $this->create($request->all());
+        $this->create($request->all());
 
         return response()->json(["code" => 0, "message" => "Registration successful."]);
     }
