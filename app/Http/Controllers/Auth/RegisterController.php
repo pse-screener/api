@@ -67,7 +67,9 @@ class RegisterController extends Controller
      */
     protected function create(array $data)
     {
-        return User::create([
+        // better to use transaction here.
+
+        $user = User::create([
             'fName' => $data['fName'],
             'lName' => $data['lName'],
             'gender' => $data['gender'],
@@ -76,7 +78,20 @@ class RegisterController extends Controller
             'mobileNo' => $data['mobileNo'],
         ]);
 
-        // after creating user, we should create a 15- or 30-day free subscription.
+        if ($user->id) {
+            $date = new \DateTime(date('Y-m-d'));
+            $date->add(new \DateInterval('P15D'));
+
+            \App\Subscriptions::create([
+                'userId' => $user->id,
+                'subscriptionRef' => 'PPP-XLS-ZX-000',
+                'paidFromMerchant' => 'FreeBank',
+                'amountPaid' => 0.00,
+                'validUntil' => $date->format('Y-m-d'),
+            ]);
+        }
+
+        return $user;
     }
 
     public function register(Request $request)

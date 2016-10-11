@@ -77,6 +77,9 @@ class AlertController extends Controller
 
         if ($subscriptions->count() == 0)
             return response()->json(["code" => 1, "message" => "No active subscription."]);
+
+        // A maximum of 30 alerts per user only to avoid abuse
+        // $alert =\App\Alerts::where('')
         
         foreach ($subscriptions as $subscription) {
             $alert =  \App\Alerts::firstOrNew([

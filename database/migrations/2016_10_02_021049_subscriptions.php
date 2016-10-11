@@ -17,7 +17,7 @@ class Subscriptions extends Migration
             $table->increments('id');
             $table->integer('userId')->unsigned();
             $table->string('subscriptionRef');
-            $table->string('PaidFromMerchant');
+            $table->string('paidFromMerchant');
             $table->decimal('amountPaid', 8, 4);
             $table->datetime('validUntil');
             $table->timestamps();
