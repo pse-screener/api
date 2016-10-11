@@ -18,7 +18,7 @@ class CreateAlertsTable extends Migration
             $table->integer('subscriptionId')->unsigned();
             $table->integer('companyId')->unsigned();
             $table->enum('priceCondition', ['movesAbove', 'movesBelow']);
-            $table->decimal('price', 8, 2);
+            $table->decimal('price', 8, 4);
             $table->boolean('sentToSms')->default(0);
             $table->boolean('sentToEmail')->default(0);
             $table->boolean('sendSms')->default(0);
