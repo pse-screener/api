@@ -41,7 +41,7 @@ class AlertController extends Controller
 
     private function checkData($request)
     {
-        str_replace(',', '' , $request->price); // remove commas on price.
+        $request["price"] = str_replace(',', '' , $request->price); // remove commas on price.
 
         $this->validate($request, [
             'companyId' => 'bail|required|max:3',
