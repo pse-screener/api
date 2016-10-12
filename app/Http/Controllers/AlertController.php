@@ -78,8 +78,10 @@ class AlertController extends Controller
         if ($subscriptions->count() == 0)
             return response()->json(["code" => 1, "message" => "No active subscription."]);
 
-        // A maximum of 30 alerts per user only to avoid abuse
-        // $alert =\App\Alerts::where('')
+        // we only need the first record no matter how many are active subscription.
+        $alertCount =\App\Alerts::where('subscriptionId', $subscriptions[0]->id)->count();
+        if ($alertCount >= 30)
+            return response()->json(["code" => 1, "message" => "Maximum limits of alerts have been reached."]);
         
         foreach ($subscriptions as $subscription) {
             $alert =  \App\Alerts::firstOrNew([
@@ -170,6 +172,9 @@ class AlertController extends Controller
      */
     public function destroy($id)
     {
+        // Soft deletion might be in the roadmap soon but for now, no.
+
+        \App\Alerts::destroy($id);
         return response()->json(["code" => 0, "message" => "Deleting successful!"]);
     }
 }
