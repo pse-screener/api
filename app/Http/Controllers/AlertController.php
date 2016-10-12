@@ -159,7 +159,7 @@ class AlertController extends Controller
             break;  // no matter how many subscription, we only need 1 entry.
         }
 
-        return response()->json(["code" => 0, "message" => "Successful."]);
+        return response()->json(["code" => 0, "message" => "Successful"]);
     }
 
     /**
@@ -170,6 +170,6 @@ class AlertController extends Controller
      */
     public function destroy($id)
     {
-        //
+        return response()->json(["code" => 0, "message" => "Deleting successful!"]);
     }
 }
