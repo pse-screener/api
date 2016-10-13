@@ -167,14 +167,15 @@ class AlertController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param  int  $id
+     * @param  string  $id or string of IDs
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy($alertIDs_string)
     {
         // Soft deletion might be in the roadmap soon but for now, no.
 
-        \App\Alerts::destroy($id);
+        $alertsArray = explode(',', urldecode($alertIDs_string));
+        \App\Alerts::destroy($alertsArray);
         return response()->json(["code" => 0, "message" => "Deleting successful!"]);
     }
 }
