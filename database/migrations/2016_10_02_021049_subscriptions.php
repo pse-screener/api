@@ -20,6 +20,7 @@ class Subscriptions extends Migration
             $table->string('paidFromMerchant');
             $table->decimal('amountPaid', 8, 4);
             $table->datetime('validUntil');
+            $table->enum('type', ['Free', 'Standard']);
             $table->timestamps();
         });
 

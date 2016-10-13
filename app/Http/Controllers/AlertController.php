@@ -17,7 +17,7 @@ class AlertController extends Controller
      */
     public function index()
     {
-        
+        //
     }
 
     /**
