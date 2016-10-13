@@ -88,6 +88,7 @@ class RegisterController extends Controller
                 'paidFromMerchant' => 'FreeBank',
                 'amountPaid' => 0.00,
                 'validUntil' => $date->format('Y-m-d'),
+                'type' => 'Free',
             ]);
         }
 
