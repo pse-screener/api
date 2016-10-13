@@ -8,8 +8,6 @@ use Illuminate\Http\Request;
 
 use Illuminate\Contracts\Auth\Guard;
 
-use Illuminate\Support\Facades\DB;
-
 class AlertController extends Controller
 {
     /**
@@ -19,14 +17,7 @@ class AlertController extends Controller
      */
     public function index()
     {
-        $user = \Auth::user();
-        $alerts = DB::table('alerts')
-                    ->join('companies', 'alerts.companyId', '=', 'companies.id')
-                    ->join('subscriptions', 'alerts.subscriptionId', '=', 'subscriptions.id')
-                    ->select('alerts.id', 'symbol', 'companyName', 'priceCondition', 'price')
-                    ->where('subscriptions.userId', '=', $user->id)
-                    ->get();
-        return response()->json($alerts);
+        
     }
 
     /**

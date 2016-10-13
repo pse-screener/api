@@ -26,5 +26,5 @@ Route::get('/verify_token', function() {
 });
 
 Route::resource('/company', 'CompanyController');
-
 Route::resource('/alert', 'AlertController');
+Route::resource('/dashboard', 'DashboardController');
