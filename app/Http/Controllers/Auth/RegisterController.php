@@ -85,10 +85,10 @@ class RegisterController extends Controller
             \App\Subscriptions::create([
                 'userId' => $user->id,
                 'subscriptionRef' => 'PPP-XLS-ZX-000',
-                'paidFromMerchant' => 'FreeBank',
+                'paidFromMerchant' => 'None',
                 'amountPaid' => 0.00,
                 'validUntil' => $date->format('Y-m-d'),
-                'type' => 'Free',
+                'subscriptionType' => 'Free',
             ]);
         }
 

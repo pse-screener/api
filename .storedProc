@@ -89,3 +89,30 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+4.
+
+DELIMITER $$
+
+USE `pse_screener_pmorcilladev`$$
+
+DROP PROCEDURE IF EXISTS `sp_getActiveSubscription`$$
+
+CREATE
+    /*[DEFINER = { user | CURRENT_USER }]*/
+    PROCEDURE `pse_screener_pmorcilladev`.`sp_getActiveSubscription`(
+	IN var_userId INT(11)
+    )
+    /*LANGUAGE SQL
+    | [NOT] DETERMINISTIC
+    | { CONTAINS SQL | NO SQL | READS SQL DATA | MODIFIES SQL DATA }
+    | SQL SECURITY { DEFINER | INVOKER }
+    | COMMENT 'string'*/
+    BEGIN
+	SELECT subscriptionType, amountPaid, DATE_FORMAT(created_at, "%m-%d-%Y") AS subscriptionDate, DATE_FORMAT(validUntil, "%m-%d-%Y") AS expiryDate
+		FROM subscriptions
+		WHERE userId = var_userId
+		ORDER BY id DESC LIMIT 1;
+    END$$
+
+DELIMITER ;

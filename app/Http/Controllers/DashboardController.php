@@ -28,11 +28,7 @@ class DashboardController extends Controller
                     ->get();
 
         $user = \Auth::user();
-        $subscriptions = \App\Subscriptions::whereRaw("DATE_FORMAT(validUntil, '%Y-%m-%d') >= DATE_FORMAT(NOW(), '%Y-%m-%d')")
-                        ->selectRaw('type, amountPaid, DATE_FORMAT(created_at, "%m-%d-%Y") as subscriptionDate, DATE_FORMAT(validUntil, "%m-%d-%Y") as expiryDate')
-                        ->where("userId", $user->id)
-                        ->take(1) // we only need the first one
-                        ->get();
+        $subscriptions = DB::select("call sp_getActiveSubscription($user->id)");
 
         $dashboard = ['alerts' => $alerts, 'subscriptions' => $subscriptions];
 
