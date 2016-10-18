@@ -9,6 +9,8 @@ use Illuminate\Foundation\Auth\RegistersUsers;
 
 use Illuminate\Http\Request;
 
+use GuzzleHttp\Client;
+
 class RegisterController extends Controller
 {
     /*
@@ -76,6 +78,7 @@ class RegisterController extends Controller
             'email' => $data['email'],
             'password' => bcrypt($data['password']),
             'mobileNo' => $data['mobileNo'],
+            'activationHash' => $data['activationHash'],
         ]);
 
         if ($user->id) {
@@ -95,16 +98,49 @@ class RegisterController extends Controller
         return $user;
     }
 
+    private function verifyReCaptcha($recaptcha) {
+        $client = new Client();
+        $response = $client->request('POST', 'https://www.google.com/recaptcha/api/siteverify', [
+            'form_params' => [
+                'secret' => '6LfmBQcUAAAAAFlhY9BUcX9ugyO6uopV_6GtziKU',
+                'response' => $recaptcha,
+            ]
+        ]);
+        
+        return $response;
+    }
+
+    private function getRandomStringAndCheckExistence() {
+        $randomString = generateRandomString();
+        while (TRUE) {
+            $user = \App\User::where('activationHash', $randomString)
+                ->select('id')
+                ->take(1)
+                ->get();
+            if ($user->count() <= 0)
+                break;
+        }
+
+        return $randomString;
+    }
+
     public function register(Request $request)
     {
+        // we want it the first one to be checked
+        $response = $this->verifyReCaptcha($request->input('g-recaptcha-response'));
+        $body = json_decode($response->getBody(), true);
+        if (!$body['success'])
+            return response()->json(['code' => 1, 'message' => 'Invalid captcha.']);
+
         $prefix = substr($request->mobileNo, 0, 4);
         $id = \App\Telcos::where('mobilePrefix', $prefix)->select('id')->get();
         if (!count($id))
-            return response()->json(['code' => 1, 'message' => 'Unknown mobile network.']);        
+            return response()->json(['code' => 1, 'message' => 'Unknown mobile network.']);
 
         $this->validator($request->all())->validate();
 
         // $this->guard()->login($this->create($request->all()));
+        $request->request->add(['activationHash' => $this->getRandomStringAndCheckExistence()]);
         $this->create($request->all());
 
         return response()->json(["code" => 0, "message" => "Registration successful."]);
