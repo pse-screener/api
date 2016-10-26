@@ -25,6 +25,7 @@ class DashboardController extends Controller
                     ->join('subscriptions', 'alerts.subscriptionId', '=', 'subscriptions.id')
                     ->select('alerts.id', 'symbol', 'companyName', 'priceCondition', 'price')
                     ->where('subscriptions.userId', '=', $user->id)
+                    ->orderBy('companyName', 'ASC')
                     ->get();
 
         $user = \Auth::user();

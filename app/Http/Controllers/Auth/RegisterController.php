@@ -95,6 +95,16 @@ class RegisterController extends Controller
         return $user;
     }
 
+    /* POST these to https://www.google.com/recaptcha/api/siteverify
+       https://developers.google.com/recaptcha/docs/verify
+    */
+    private function checkRecaptcha(array $data)
+    {
+        $secret = '6LfmBQcUAAAAAFlhY9BUcX9ugyO6uopV_6GtziKU';
+        $response = $data['g-recaptcha-response'];
+        $remoteip = $data['$remoteip'];
+    }
+
     public function register(Request $request)
     {
         $prefix = substr($request->mobileNo, 0, 4);

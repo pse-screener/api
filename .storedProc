@@ -4,7 +4,7 @@ Stored proc
 
 DELIMITER $$
 
-USE `pse_monitor_pmorcilladev`$$
+USE `pse_alert_pmorcilladev`$$
 
 DROP PROCEDURE IF EXISTS `sp_aggregate_per_minute`$$
 
@@ -41,7 +41,7 @@ DELIMITER ;
 
 DELIMITER $$
 
-USE `pse_monitor_pmorcilladev`$$
+USE `pse_alert_pmorcilladev`$$
 
 DROP PROCEDURE IF EXISTS `sp_materialize_per_company_daily`$$
 
