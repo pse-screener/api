@@ -1,7 +1,7 @@
 <?php
 
 /* This file is a custom made re-usable accross the application.
-	You can more here.
+	You can add more helpers.
 */
 
 function generateRandomString($length = 30) {
