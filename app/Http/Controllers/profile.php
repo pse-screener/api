@@ -18,7 +18,7 @@ class profile extends Controller
     public function index()
     {
         $user = \Auth::user();
-        $profile = \App\Users::select('fName', 'lName', 'gender', 'email', 'mobileNo')
+        $profile = \App\Users::select('id', 'fName', 'lName', 'birthday', 'gender', 'email', 'mobileNo')
             ->where('id', $user->id)
             ->get()[0];
         return response()->json($profile);
@@ -76,7 +76,25 @@ class profile extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+        $user = \Auth::user();
+        if ($id != $user->id)
+            return response()->json(["code" => 1, "message" => "Invalid user."]);
+
+        $Users = \App\Users::find($id);
+        $Users->fName = $request->fName;
+        $Users->lName = $request->lName;
+        $birthday = new \DateTime($request->birthday);
+        $birthday = $birthday->format('Y-m-d');
+        $Users->birthday = $birthday;
+        $Users->gender = $request->gender;
+        $Users->email = $request->email;
+        $Users->mobileNo = $request->mobileNo;
+
+        try {
+            $Users->save();
+        } catch (Exception $e) {
+            
+        }
     }
 
     /**
