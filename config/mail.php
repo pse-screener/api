@@ -56,8 +56,8 @@ return [
     */
 
     'from' => [
-        'address' => 'hello@example.com',
-        'name' => 'Example',
+        'address' => 'jdream_catcher@yahoo.com',
+        'name' => 'PSE Monitor',
     ],
 
     /*
