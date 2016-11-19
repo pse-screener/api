@@ -33,6 +33,13 @@ class ForgotPasswordController extends Controller
         $this->middleware('guest');
     }
 
+    /**
+     * Send a reset link to the given user. (An overridden method).
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+
     public function sendResetLinkEmail(Request $request)
     {
         // return response()->json(['code' => 1, 'message' => 'Unknown mobile network.']);
