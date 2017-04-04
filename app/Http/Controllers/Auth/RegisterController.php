@@ -76,6 +76,7 @@ class RegisterController extends Controller
             'email' => $data['email'],
             'password' => bcrypt($data['password']),
             'mobileNo' => $data['mobileNo'],
+            'activationHash' => str_random(40),
         ]);
 
         if ($user->id) {

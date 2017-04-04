@@ -23,7 +23,7 @@ class CreateUsersTable extends Migration
             $table->string('password');
             $table->string('mobileNo', 11)->unique();
             $table->boolean('active')->default(1);
-            $table->string('activationHash', 30)->unique();
+            $table->string('activationHash', 40)->unique();
             $table->datetime('tsActivated')->nullable();
             $table->rememberToken();
             $table->timestamps();
