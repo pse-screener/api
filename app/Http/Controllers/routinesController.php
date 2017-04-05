@@ -21,14 +21,14 @@ class routinesController extends Controller
         );
 
         if (!in_array(basename($_SERVER['SCRIPT_FILENAME']), $allowedFromScripts))
-            exit("Only run if we're started from one of the command line scripts.");
+            exit("The script only runs if started from one of the command line scripts.\n");
     }
 
     /* being ran every minute on weekdays; Will dump into json file. */
     public function downloadCompaniesAndPrices() {
     	if (!config('app.download_raw_data_beyond_trading_window')) {
     		if (date("N") > 5) {
-    			exit("Environment doesn't allow download raw data beyong trading hours.");
+    			exit("Environment doesn't allow download raw data beyong trading hours.\n");
     		}
 
     		$currentDateTime = new \DateTime(date("Y-m-d H:i:s"));	//today
@@ -39,7 +39,7 @@ class routinesController extends Controller
     		$pm_trade_end = new \DateTime(date("Y-m-d 15:32:00"));
 
     		if (!($currentDateTime >= $am_trade_start && $currentDateTime <= $am_trade_end) || !($currentDateTime >= $pm_trade_start && $currentDateTime <= $pm_trade_end)) {
-    			exit("Environment doesn't allow download raw data beyong trading hours.");
+    			exit("Environment doesn't allow download raw data beyong trading hours.\n");
     		}
     	}
 
@@ -49,7 +49,7 @@ class routinesController extends Controller
 		$data = json_decode($response->getBody(), TRUE);
 
 		if (!isset($data['as_of']))
-			exit("No data in upstream.");
+			exit("No data in upstream.\n");
 
         $asOf = $data['as_of'];
         preg_match("/(\d{4}-\d{2}-\d{2})/", $asOf, $match);
