@@ -74,7 +74,8 @@ class ForgotPasswordController extends Controller
 
         return response()->json(["code" => 1, "message" => trans($response)]);*/
 
-        // another way. Success!        
+        // another way. Success!    
+        // https://laracasts.com/discuss/channels/laravel/get-a-password-reset-token. Thanks to @robgeorgeuk.
         $user = \App\User::where('email', $request->only('email'))->first();
         $token = app('auth.password.broker')->createToken($user);
         $user->notify(new My_PasswordReset($token));
