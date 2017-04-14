@@ -1,20 +1,19 @@
-# system
+### System requirements.
 
-System requirements.
-
-1. Linux 14.04
+1. Linux - tested with 14.04
 2. Apache2
 3. Laravel 5.3 with Passport.
-4. Node.js v.6.5.0
-5. npm -v 3.10.3
+4. Node.js - tested with v4.2.6
+5. npm - tested with v3.5.2
 
-Installation from cloned repo.
+#### Installation from cloned repo.
 
-1. npm install
-2. composer install
+1. $ sudo npm install
+2. $ composer install
 3. cp -p .env.example .env
 4. php artisan key:generate
 5. This one has always been a headache
+	
 	5.1 Always copy the Apache2 config found in the pse-screener/public (i.e. the front-end).
 	5.2 In your pse-screener type
 ```
