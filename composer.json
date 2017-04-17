@@ -21,7 +21,8 @@
             "database"
         ],
         "psr-4": {
-            "App\\": "app/"
+            "App\\": "app/",
+            "Jsms\\": "app/thirdParty/Jsms/Sms/"
         },
         "files":  [
             "app/Helpers.php"

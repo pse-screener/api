@@ -25,6 +25,7 @@ Route::get('/harvestDownloadedCompaniesAndPrices', 'routinesController@harvestDo
 Route::get('/materializeRawDataPerMinute', 'routinesController@materializeRawDataPerMinute');
 Route::get('/materializeForPerCompanyDaily', 'routinesController@materializeForPerCompanyDaily');
 Route::get('/performEOD', 'routinesController@performEOD');
+Route::get('/testSMS', 'routinesController@testSMS');
 
 // Let's stop this for the meantime.
 // Route::get('auth/csrf_token', 'CsrfController@csrf_token');

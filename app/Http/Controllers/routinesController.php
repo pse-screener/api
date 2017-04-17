@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Client;
 
+use Jsms\Sms;
+
 class routinesController extends Controller
 {
     public function __construct() {
@@ -18,6 +20,7 @@ class routinesController extends Controller
             'downloadCompaniesAndPrices.php',
             'harvestDownloadedCompaniesAndPrices.php',
             'materializeRawDataPerMinute.php',
+            'testSms.php'
         );
 
         if (!in_array(basename($_SERVER['SCRIPT_FILENAME']), $allowedFromScripts))
@@ -226,5 +229,21 @@ class routinesController extends Controller
 
     public function performEOD() {
     	DB::statement("call sp_perform_eod()");
+    }
+
+    public function sendSmsAlert() {
+        
+    }
+
+    public function testSMS() {
+        $sms = new Sms();
+        $sms->delayInSeconds = 6;
+        print "Set device: " . $sms->setDevice('/dev/ttyUSB2') . "\n";
+        print "Open device: " . $sms->openDevice() . "\n";
+        print "Set baud rate: " . $sms->setBaudRate(115200) . "\n";
+        print "Sent message: " . $sms->sendSMS('09332162333', 'I miss you.') . "\n";
+        $sms->sendCmd("ATi");
+        print $sms->getDeviceResponse() . "\n";
+        print "Device closed: " . $sms->closeDevice() . "\n"; 
     }
 }
