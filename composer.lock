@@ -2598,7 +2598,11 @@
                 "psr",
                 "psr-7"
             ],
+<<<<<<< HEAD
             "time": "2017-04-06T16:18:34+00:00"
+=======
+            "time": "2017-04-06 16:18:34"
+>>>>>>> a3a01f015fbbab72ea833193b309ebf93f68fee3
         }
     ],
     "packages-dev": [
@@ -4130,7 +4134,11 @@
             ],
             "description": "Symfony Yaml Component",
             "homepage": "https://symfony.com",
+<<<<<<< HEAD
             "time": "2017-03-20T09:45:15+00:00"
+=======
+            "time": "2017-03-20 09:45:15"
+>>>>>>> a3a01f015fbbab72ea833193b309ebf93f68fee3
         },
         {
             "name": "webmozart/assert",
