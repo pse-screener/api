@@ -23,9 +23,8 @@ Route::get('/home', 'HomeController@index');
 Route::get('/downloadCompaniesAndPrices', 'routinesController@downloadCompaniesAndPrices');
 Route::get('/harvestDownloadedCompaniesAndPrices', 'routinesController@harvestDownloadedCompaniesAndPrices');
 Route::get('/materializeRawDataPerMinute', 'routinesController@materializeRawDataPerMinute');
-Route::get('/materializeForPerCompanyDaily', 'routinesController@materializeForPerCompanyDaily');
+Route::get('/materializeForPerCompanyPerTradingDay', 'routinesController@materializeForPerCompanyPerTradingDay');
 Route::get('/performEOD', 'routinesController@performEOD');
-
 Route::get('/testSMS', 'routinesController@testSMS');
 
 // Let's stop this for the meantime.
