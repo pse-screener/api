@@ -11,11 +11,7 @@ use Illuminate\Support\Facades\DB;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Client;
 
-<<<<<<< HEAD
 use Jsms;
-=======
-use Jsms\Sms;
->>>>>>> a3a01f015fbbab72ea833193b309ebf93f68fee3
 
 class routinesController extends Controller
 {
@@ -24,11 +20,8 @@ class routinesController extends Controller
             'downloadCompaniesAndPrices.php',
             'harvestDownloadedCompaniesAndPrices.php',
             'materializeRawDataPerMinute.php',
-<<<<<<< HEAD
             'materializeForPerCompanyPerTradingDay.php',
-=======
-            'materializeForPerCompanyDaily.php',
->>>>>>> a3a01f015fbbab72ea833193b309ebf93f68fee3
+            'sendSmsAlert.php',
             'testSms.php',
         );
 
@@ -126,7 +119,6 @@ class routinesController extends Controller
 
     		DB::insert("call sp_aggregate_per_minute('$symbol', $price, '$asOf', $percentChange, $volume, $rawRecordId)");
     	}
-<<<<<<< HEAD
 
         print "Success!\n";
     }    
@@ -138,21 +130,6 @@ class routinesController extends Controller
 
         // if ($currentDateTime < $pm_trade_end)
         //     exit("This should be ran at 3.:30PM after trading hours.");
-=======
-
-        print "Success!\n";
-    }
-
-    
-
-    public function materializeForPerCompanyDaily() {
-        // we only allow 
-        $currentDateTime = new \DateTime(date("Y-m-d H:i:s"));  //today
-        $pm_trade_end = new \DateTime(date("Y-m-d 15:35:00"));
-
-        if ($currentDateTime < $pm_trade_end)
-            exit("This should be ran at 3.:35PM after trading hours.");
->>>>>>> a3a01f015fbbab72ea833193b309ebf93f68fee3
 
         $sql = "SELECT DATE_FORMAT(asOf, '%Y-%m-%d') AS asOf FROM aggregate_per_minute 
             WHERE materialized IS NULL OR materialized = 0
@@ -161,7 +138,6 @@ class routinesController extends Controller
 
         $tableDates = DB::select($sql);
 
-<<<<<<< HEAD
         $latest = [];
         foreach ($tableDates as $tableDate) {
             $latest[$tableDate->asOf] = [];
@@ -174,7 +150,7 @@ class routinesController extends Controller
             $records = db::select($sql);
 
             $arrayPerCompany = [];
-            // this will overwrite the latest one.
+            // this will overwrite with the latest one since it's already being ORDERed BY
             foreach ($records as $record) {
                 $arrayPerCompany[$record->companyId] = [];
                 $arrayPerCompany[$record->companyId]['id'] = $record->id;
@@ -198,9 +174,16 @@ class routinesController extends Controller
                     )");
                 }
             }
+
+            $IDlist = [];
+            foreach ($records as $record)
+                $IDlist[] = $record->id;
+            
+            // UPDATE aggregate_per_minute SET materialized = 1 WHERE id = var_aggregatePerMinuteId;            
+            DB::table('aggregate_per_minute')->whereIn('id', $IDlist)->update(['materialized' => 1]);
         }
 
-        file_put_contents('/tmp/array.txt', print_r($latest, TRUE));
+        // file_put_contents('/tmp/array.txt', print_r($latest, TRUE));
 
         print "Success!\n";
     }
@@ -210,51 +193,15 @@ class routinesController extends Controller
     }
 
     public function sendAlertsToSubscribers() {
-        // ended here.. to be continued.
+        // 
     }
 
     public function sendSmsAlert() {
-        
-=======
-        foreach ($tableDates as $tableDate) {
-            // group by dates
-
-            $asOf_date = $tableDate->asOf;
-
-            print $asOf_date . "\n";
-
-            // we retrieve the last record of each company for table materialize_per_company_daily.
-            $sql = "SELECT A.id, A.companyId, A.price, A.asOf, A.percentChange, A.volume
-                    FROM aggregate_per_minute A LEFT JOIN aggregate_per_minute B ON (A.companyId = B.companyId AND A.id < B.id)
-                    WHERE B.id IS NULL AND DATE_FORMAT(A.asOf, '%Y-%m-%d') = '$asOf_date' AND (A.materialized IS NULL OR A.materialized = 0)";
-            $records = db::select($sql);
-
-            foreach ($records as $record)
-                DB::statement("call sp_materialize_per_company_daily($record->id, $record->companyId, $record->price, '$record->asOf', $record->percentChange, $record->volume)");
-        }
-
-        print "Success!\n";
->>>>>>> a3a01f015fbbab72ea833193b309ebf93f68fee3
+        // 
     }
 
-    public function testSMS() {
+    public function testSms() {
         $sms = new Jsms\Sms;
-        $sms->delayInSeconds = 6;
-        print "Set device: " . $sms->setDevice('/dev/ttyUSB2') . "\n";
-        print "Open device: " . $sms->openDevice() . "\n";
-        print "Set baud rate: " . $sms->setBaudRate(115200) . "\n";
-        print "Sent message: " . $sms->sendSMS('09332162333', 'I miss you.') . "\n";
-        $sms->sendCmd("ATi");
-        print $sms->getDeviceResponse() . "\n";
-        print "Device closed: " . $sms->closeDevice() . "\n"; 
-    }
-
-    public function sendSmsAlert() {
-        
-    }
-
-    public function testSMS() {
-        $sms = new Sms();
         $sms->delayInSeconds = 6;
         print "Set device: " . $sms->setDevice('/dev/ttyUSB2') . "\n";
         print "Open device: " . $sms->openDevice() . "\n";

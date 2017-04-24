@@ -22,11 +22,7 @@
         ],
         "psr-4": {
             "App\\": "app/",
-<<<<<<< HEAD
             "Jsms\\": "app/thirdParty/jhunexjun/Sms/"
-=======
-            "Jsms\\": "app/thirdParty/Jsms/Sms/"
->>>>>>> a3a01f015fbbab72ea833193b309ebf93f68fee3
         },
         "files":  [
             "app/Helpers.php"
