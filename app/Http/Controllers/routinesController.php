@@ -149,9 +149,10 @@ class routinesController extends Controller
                     ORDER BY companyId, asOf;";
             $records = db::select($sql);
 
-            $arrayPerCompany = [];
+            $arrayPerCompany = [];  $IDlist = [];
             // this will overwrite with the latest one since it's already being ORDERed BY
             foreach ($records as $record) {
+                $IDlist[] = $record->id;
                 $arrayPerCompany[$record->companyId] = [];
                 $arrayPerCompany[$record->companyId]['id'] = $record->id;
                 $arrayPerCompany[$record->companyId]['price'] = $record->price;
@@ -175,11 +176,6 @@ class routinesController extends Controller
                 }
             }
 
-            $IDlist = [];
-            foreach ($records as $record)
-                $IDlist[] = $record->id;
-            
-            // UPDATE aggregate_per_minute SET materialized = 1 WHERE id = var_aggregatePerMinuteId;            
             DB::table('aggregate_per_minute')->whereIn('id', $IDlist)->update(['materialized' => 1]);
         }
 
