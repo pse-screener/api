@@ -184,16 +184,14 @@ class routinesController extends Controller
         print "Success!\n";
     }
 
+    /* I'm not sure if this is still needed. */
     public function performEOD() {
     	DB::statement("call sp_perform_eod()");
     }
 
     public function sendAlertsToSubscribers() {
-        // 
-    }
-
-    public function sendSmsAlert() {
-        // 
+        $records = DB::statement("call sp_getAlertsForSubscribers()");
+        // end here...
     }
 
     public function testSms() {
