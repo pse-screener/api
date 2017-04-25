@@ -17,7 +17,7 @@ class Sms {
 	private $_device = null;
 	private $_handle = null;
 
-	public $delayInSeconds = 5;
+	public $delayInSeconds = 7;
 
 	public function __construct() {
 		setlocale(LC_ALL, "en_US");
@@ -150,6 +150,8 @@ class Sms {
 		do {
 			$response .= fread($this->_handle, 128);
 		} while (($i += 128) == strlen($response));
+
+		echo trim($response), "\n";
 
 		return trim($response);	// we trim here because there are other characters in the response other than Alphabet like \n.
 	}

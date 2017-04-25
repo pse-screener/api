@@ -15,6 +15,7 @@
 5. This one has always been a headache
 	
 	5.1 Always copy the Apache2 config found in the pse-screener/public (i.e. the front-end).
+	
 	5.2 In your pse-screener type
 ```
 		$ sudo chmod 755 -R api

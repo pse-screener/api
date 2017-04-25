@@ -21,7 +21,7 @@ class routinesController extends Controller
             'harvestDownloadedCompaniesAndPrices.php',
             'materializeRawDataPerMinute.php',
             'materializeForPerCompanyPerTradingDay.php',
-            'sendSmsAlert.php',
+            'sendAlertsToSubscribers.php',
             'testSms.php',
         );
 
@@ -179,19 +179,65 @@ class routinesController extends Controller
             DB::table('aggregate_per_minute')->whereIn('id', $IDlist)->update(['materialized' => 1]);
         }
 
-        // file_put_contents('/tmp/array.txt', print_r($latest, TRUE));
-
         print "Success!\n";
     }
 
-    /* I'm not sure if this is still needed. */
+    /* I'm not sure if this is still needed but currently not. */
     public function performEOD() {
     	DB::statement("call sp_perform_eod()");
     }
 
     public function sendAlertsToSubscribers() {
-        $records = DB::statement("call sp_getAlertsForSubscribers()");
-        // end here...
+        $sql = "SELECT alerts.id, companies.symbol, 'movesAbove' alertType, alerts.price alertPrice, MPCD.price currentPrice, MPCD.asOf, users.mobileNo
+            FROM alerts JOIN materialize_per_company_daily MPCD ON alerts.companyId = MPCD.companyId
+               JOIN companies ON alerts.companyId = companies.id
+               LEFT JOIN subscriptions ON subscriptions.id = alerts.subscriptionId
+               LEFT JOIN users ON users.id = subscriptions.userId
+            WHERE alerts.price < MPCD.price
+               AND alerts.created_at < MPCD.asOf
+               AND sentToSms = 0
+               AND alerts.created_at < NOW()
+               AND users.active = 1    
+            UNION ALL
+            SELECT alerts.id, companies.symbol, 'movesBelow' alertType, alerts.price alertPrice, MPCD.price currentPrice, MPCD.asOf, users.mobileNo
+            FROM alerts JOIN materialize_per_company_daily MPCD ON alerts.companyId = MPCD.companyId
+               JOIN companies ON alerts.companyId = companies.id
+               JOIN subscriptions ON subscriptions.id = alerts.subscriptionId
+               JOIN users ON users.id = subscriptions.userId
+            WHERE alerts.price > MPCD.price
+               AND alerts.created_at < MPCD.asOf
+               AND sentToSms = 0
+               AND alerts.created_at < NOW()
+               AND users.active = 1";
+
+        $records = DB::select($sql);
+
+        $sms = new Jsms\Sms;
+        $sms->delayInSeconds = 6;
+        print "Set device: " . $sms->setDevice('/dev/ttyUSB2') . "\n";
+        print "Open device: " . $sms->openDevice() . "\n";
+        print "Set baud rate: " . $sms->setBaudRate(115200) . "\n";
+        foreach ($records as $record) {
+            if ($record->alertType == 'movesAbove')
+                $alertType = "above";
+            elseif ($record->alertType == 'movesBelow')
+                $alertType = "below";
+
+            $msg = "PSE Alert: {$record->symbol} price has already reached $alertType your alert price of {$record->alertPrice}. Price as of {$record->asOf} is {$record->currentPrice}";
+
+            $sentMessage = $sms->sendSMS($record->mobileNo, $msg);
+
+            // For now we'll just assume that message was sent because object Jsms\Sms has still difficulty in reading correct result.
+            DB::table('alerts')->where('id', $record->id)->update(['sentToSms' => 1]);
+            /*if ($sentMessage) {
+                print "Sent message: {$record->mobileNo}";
+                DB::table('alerts')->where('id', $record->id)->update(['sentToSms' => 1]);
+            } else {
+                echo "Failed to send message to {$record->mobileNo}.\n";
+            }*/
+        }
+        print $sms->getDeviceResponse() . "\n";
+        print "Device closed: " . $sms->closeDevice() . "\n";
     }
 
     public function testSms() {

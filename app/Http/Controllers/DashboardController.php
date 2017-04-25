@@ -23,7 +23,7 @@ class DashboardController extends Controller
         $alerts = DB::table('alerts')
                     ->join('companies', 'alerts.companyId', '=', 'companies.id')
                     ->join('subscriptions', 'alerts.subscriptionId', '=', 'subscriptions.id')
-                    ->select('alerts.id', 'symbol', 'companyName', 'priceCondition', 'price')
+                    ->select('alerts.id', 'symbol', 'companyName', 'priceCondition', 'price', 'sentToSms')
                     ->where('subscriptions.userId', '=', $user->id)
                     ->orderBy('companyName', 'ASC')
                     ->get();
