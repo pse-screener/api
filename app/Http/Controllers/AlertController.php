@@ -71,7 +71,7 @@ class AlertController extends Controller
 
         // we only need the first record no matter how many are active subscription.
         $alertCount =\App\Alerts::where('subscriptionId', $subscriptions[0]->id)->count();
-        if ($alertCount >= 20)
+        if ($alertCount >= 15)
             return response()->json(["code" => 1, "message" => "Maximum limits of alerts have been reached."]);
         
         foreach ($subscriptions as $subscription) {

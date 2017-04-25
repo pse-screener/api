@@ -93,7 +93,7 @@ class Sms {
 			return false;
 		}
 
-		$this->_handle = fopen($this->_device, $mode);
+		$this->_handle = @fopen($this->_device, $mode);
 
 		if ($this->_handle !== false) {
 			stream_set_timeout($this->_handle, 20);

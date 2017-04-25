@@ -188,27 +188,15 @@ class routinesController extends Controller
     }
 
     public function sendAlertsToSubscribers() {
-        $sql = "SELECT alerts.id, companies.symbol, 'movesAbove' alertType, alerts.price alertPrice, MPCD.price currentPrice, MPCD.asOf, users.mobileNo
-            FROM alerts JOIN materialize_per_company_daily MPCD ON alerts.companyId = MPCD.companyId
-               JOIN companies ON alerts.companyId = companies.id
-               LEFT JOIN subscriptions ON subscriptions.id = alerts.subscriptionId
-               LEFT JOIN users ON users.id = subscriptions.userId
-            WHERE alerts.price < MPCD.price
-               AND alerts.created_at < MPCD.asOf
-               AND sentToSms = 0
-               AND alerts.created_at < NOW()
-               AND users.active = 1    
-            UNION ALL
-            SELECT alerts.id, companies.symbol, 'movesBelow' alertType, alerts.price alertPrice, MPCD.price currentPrice, MPCD.asOf, users.mobileNo
-            FROM alerts JOIN materialize_per_company_daily MPCD ON alerts.companyId = MPCD.companyId
-               JOIN companies ON alerts.companyId = companies.id
-               JOIN subscriptions ON subscriptions.id = alerts.subscriptionId
-               JOIN users ON users.id = subscriptions.userId
-            WHERE alerts.price > MPCD.price
-               AND alerts.created_at < MPCD.asOf
-               AND sentToSms = 0
-               AND alerts.created_at < NOW()
-               AND users.active = 1";
+        $sql = "SELECT alerts.id, companies.symbol, alerts.priceCondition, alerts.price alertPrice, MPCD.price currentPrice, MPCD.asOf, users.mobileNo
+                FROM alerts JOIN materialize_per_company_daily MPCD ON alerts.companyId = MPCD.companyId
+                    JOIN companies ON alerts.companyId = companies.id
+                    JOIN subscriptions ON subscriptions.id = alerts.subscriptionId
+                    JOIN users ON users.id = subscriptions.userId
+                WHERE alerts.updated_at < MPCD.asOf
+                    AND sentToSms = 0
+                    AND alerts.created_at < NOW()
+                    AND users.active = 1";
 
         $records = DB::select($sql);
 
@@ -218,23 +206,22 @@ class routinesController extends Controller
         print "Open device: " . $sms->openDevice() . "\n";
         print "Set baud rate: " . $sms->setBaudRate(115200) . "\n";
         foreach ($records as $record) {
-            if ($record->alertType == 'movesAbove')
-                $alertType = "above";
-            elseif ($record->alertType == 'movesBelow')
-                $alertType = "below";
+            $priceCondition = "";
 
-            $msg = "PSE Alert: {$record->symbol} price has already reached $alertType your alert price of {$record->alertPrice}. Price as of {$record->asOf} is {$record->currentPrice}";
+            if ($record->priceCondition == 'movesAbove')
+                if ($record->alertPrice < $record->currentPrice)
+                    $priceCondition = "above";
+            elseif ($record->priceCondition == 'movesBelow')
+                if ($record->alertPrice > $record->currentPrice)
+                    $priceCondition = "below";
 
-            $sentMessage = $sms->sendSMS($record->mobileNo, $msg);
-
-            // For now we'll just assume that message was sent because object Jsms\Sms has still difficulty in reading correct result.
-            DB::table('alerts')->where('id', $record->id)->update(['sentToSms' => 1]);
-            /*if ($sentMessage) {
-                print "Sent message: {$record->mobileNo}";
+            if ($priceCondition != "") {
+                $msg = "PSE Alert: {$record->symbol} price has already reached $priceCondition your alert price of {$record->alertPrice}. Price as of {$record->asOf} is {$record->currentPrice}";
+                $sentMessage = $sms->sendSMS($record->mobileNo, $msg);
+                print "Message sent!\n";
+                // For now we'll just assume that message was sent because object Jsms\Sms has still difficulty in reading correct result.
                 DB::table('alerts')->where('id', $record->id)->update(['sentToSms' => 1]);
-            } else {
-                echo "Failed to send message to {$record->mobileNo}.\n";
-            }*/
+            }
         }
         print $sms->getDeviceResponse() . "\n";
         print "Device closed: " . $sms->closeDevice() . "\n";

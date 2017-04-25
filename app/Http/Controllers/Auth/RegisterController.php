@@ -81,7 +81,7 @@ class RegisterController extends Controller
 
         if ($user->id) {
             $date = new \DateTime(date('Y-m-d'));
-            $date->add(new \DateInterval('P15D'));
+            $date->add(new \DateInterval('P3M'));
 
             \App\Subscriptions::create([
                 'userId' => $user->id,
