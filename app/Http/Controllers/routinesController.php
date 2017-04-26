@@ -221,7 +221,15 @@ class routinesController extends Controller
                 $sentMessage = $sms->sendSMS($record->mobileNo, $msg);
                 print "Message sent!\n";
                 // For now we'll just assume that message was sent because object Jsms\Sms has still difficulty in reading correct result.
-                DB::table('alerts')->where('id', $record->id)->update(['sentToSms' => 1]);
+                $mobilePrefix = substr($record->mobileNo, 0, 4);
+                $telco = DB::table('telcos')->select('network')->where('mobilePrefix', $mobilePrefix)->get();
+
+                if ($telco)
+
+                DB::transaction(function() {
+                    
+                    DB::table('alerts')->where('id', $record->id)->update(['sentToSms' => 1]);
+                });
             }
         }
         print $sms->getDeviceResponse() . "\n";

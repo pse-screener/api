@@ -80,7 +80,7 @@ class PasswordController extends Controller
             return response()->json(["code" => 1, "message" => "Invalid previous password."]);
 
         $Users = \App\Users::find($userId);
-        $Users->password = \Hash::make($request->password);
+        $Users->password = bcrypt($request->newPassword);
         $Users->save();
         return response()->json(["code" => 0, "message" => "Change password successful."]);
     }
