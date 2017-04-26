@@ -23,6 +23,7 @@ class routinesController extends Controller
             'materializeForPerCompanyPerTradingDay.php',
             'sendAlertsToSubscribers.php',
             'testSms.php',
+            'artisan',  // used for to run "php artisan route:list"
         );
 
         if (!in_array(basename($_SERVER['SCRIPT_FILENAME']), $allowedFromScripts))
@@ -187,7 +188,7 @@ class routinesController extends Controller
     	DB::statement("call sp_perform_eod()");
     }
 
-    public function sendAlertsToSubscribers() {
+    public function sendDailyAlertsToSubscribers() {
         $sql = "SELECT alerts.id, companies.symbol, alerts.priceCondition, alerts.price alertPrice, MPCD.price currentPrice, MPCD.asOf, users.mobileNo
                 FROM alerts JOIN materialize_per_company_daily MPCD ON alerts.companyId = MPCD.companyId
                     JOIN companies ON alerts.companyId = companies.id

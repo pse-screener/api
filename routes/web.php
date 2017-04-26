@@ -25,7 +25,7 @@ Route::get('/harvestDownloadedCompaniesAndPrices', 'routinesController@harvestDo
 Route::get('/materializeRawDataPerMinute', 'routinesController@materializeRawDataPerMinute');
 Route::get('/materializeForPerCompanyPerTradingDay', 'routinesController@materializeForPerCompanyPerTradingDay');
 Route::get('/performEOD', 'routinesController@performEOD');
-Route::get('/sendAlertsToSubscribers', 'routinesController@sendAlertsToSubscribers');
+Route::get('/sendDailyAlertsToSubscribers', 'routinesController@sendDailyAlertsToSubscribers');
 Route::get('/testSMS', 'routinesController@testSMS');
 
 // Let's stop this for the meantime.
