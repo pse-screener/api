@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 
 use Illuminate\Contracts\Auth\Guard;
 
+use Illuminate\Support\Facades\DB;
+
 class AlertController extends Controller
 {
     /**
