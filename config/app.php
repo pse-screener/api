@@ -230,5 +230,5 @@ return [
     ],
 
     'download_raw_data_beyond_trading_window' => env('DOWNLOAD_RAW_DATA_BEYONG_TRADING_WINDOW', false),
-
+    'considered_as_other_network' => env('CONSIDERED_AS_OTHER_NETWORK', 'GLOBE,TM'),
 ];

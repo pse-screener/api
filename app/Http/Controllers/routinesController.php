@@ -188,6 +188,7 @@ class routinesController extends Controller
     	DB::statement("call sp_perform_eod()");
     }
 
+    /* Intended to run at the end of the trading day. */
     public function sendDailyAlertsToSubscribers() {
         $sql = "SELECT alerts.id, companies.symbol, alerts.priceCondition, alerts.price alertPrice, MPCD.price currentPrice, MPCD.asOf, users.mobileNo
                 FROM alerts JOIN materialize_per_company_daily MPCD ON alerts.companyId = MPCD.companyId
@@ -217,19 +218,45 @@ class routinesController extends Controller
                     $priceCondition = "below";
 
             if ($priceCondition != "") {
-                $msg = "PSE Alert: {$record->symbol} price has already reached $priceCondition your alert price of {$record->alertPrice}. Price as of {$record->asOf} is {$record->currentPrice}";
-                $sentMessage = $sms->sendSMS($record->mobileNo, $msg);
-                print "Message sent!\n";
-                // For now we'll just assume that message was sent because object Jsms\Sms has still difficulty in reading correct result.
                 $mobilePrefix = substr($record->mobileNo, 0, 4);
-                $telco = DB::table('telcos')->select('network')->where('mobilePrefix', $mobilePrefix)->get();
+                $telco = DB::table('telcos')->select('network')->where('mobilePrefix', $mobilePrefix)->first();
 
-                if ($telco)
+                if ($telco) {
+                    $smsLoad = DB::table('smsLoad')->select('allowedToBeSent', 'allowedToSameNetwork', 'allowedToOtherNetwork', 'sentToSameNetwork', 'sentToOtherNetwork', 'sentMessages')->where('id', 1)->first();
 
-                DB::transaction(function() {
-                    
-                    DB::table('alerts')->where('id', $record->id)->update(['sentToSms' => 1]);
-                });
+                    $consideredAsOtherNetwork = explode(',', config('app.considered_as_other_network'));
+                    if (!in_array($telco->network, $consideredAsOtherNetwork) &&
+                        ($smsLoad->allowedToSameNetwork > $smsLoad->sentToSameNetwork) &&
+                        ($smsLoad->allowedToBeSent > $smsLoad->sentMessages)) { // meaning they're in the same network because I currently use TnT
+                        $allowedToSendMessage = true;
+                    } elseif (in_array($telco->network, $consideredAsOtherNetwork) &&
+                        ($smsLoad->allowedToOtherNetwork > $smsLoad->sentToOtherNetwork) &&
+                        ($smsLoad->allowedToBeSent > $smsLoad->sentMessages)) { // meaning they're not in the same network because I currently use TnT
+                        $allowedToSendMessage = true;
+                    } else {
+                        $allowedToSendMessage = false;
+                    }
+
+                    if ($allowedToSendMessage) {
+                        $msg = "PSE Alert: {$record->symbol} price has already reached $priceCondition your alert price of {$record->alertPrice}. Price as of {$record->asOf} is {$record->currentPrice}";
+                        $sentMessage = $sms->sendSMS($record->mobileNo, $msg);
+                        print "Message sent!\n";
+                        // For now we'll just assume that message was sent because object Jsms\Sms has still difficulty in reading correct result.
+                        DB::transaction(function() {                        
+                            DB::table('alerts')->where('id', $record->id)->update(['sentToSms' => 1]);
+                            if (!in_array($telco->network, $consideredAsOtherNetwork))
+                                DB::table('smsLoad')->where('id', 1)->increment('sentToSameNetwork');
+                            else
+                                DB::table('smsLoad')->where('id', 1)->increment('sentToOtherNetwork');
+
+                            DB::table('smsLoad')->where('id', 1)->increment('sentMessages');
+                        });
+                    } else {
+                        print "Message Not allowed to send.\n";
+                    }                    
+                } else {
+                    print "Unknown network.\n";
+                }
             }
         }
         print $sms->getDeviceResponse() . "\n";
