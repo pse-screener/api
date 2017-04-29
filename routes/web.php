@@ -28,5 +28,8 @@ Route::get('/performEOD', 'routinesController@performEOD');
 Route::get('/sendDailyAlertsToSubscribers', 'routinesController@sendDailyAlertsToSubscribers');
 Route::get('/testSMS', 'routinesController@testSMS');
 
+Route::get('/downloadCompaniesAndPricesByDate', 'routinesController@downloadCompaniesAndPricesByDate');
+Route::get('/harvestDownloadedCompaniesAndPricesPerCompany', 'routinesController@harvestDownloadedCompaniesAndPricesPerCompany');
+
 // Let's stop this for the meantime.
 // Route::get('auth/csrf_token', 'CsrfController@csrf_token');
