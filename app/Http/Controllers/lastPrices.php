@@ -21,13 +21,16 @@ class lastPrices extends Controller
 
     /* Gets company price by companies. */
     public function getLastPrices() {
-    	$lastDate = DB::table('materialize_per_company_daily')->max('asOf'); // $lastDate is the latest date.
+    	$lastDate = DB::table('materialize_per_company_daily')->max('asOf');
 
-    	$lastPrices = DB::table('companies')
+        $lastPrices = [];
+    	$lastPrices['companies'] = DB::table('companies')
     					->join('materialize_per_company_daily as mpcd', 'companies.id', '=', 'mpcd.companyId')
-    					->select('companyName', 'symbol', 'price', 'asOf')
+    					->select('companyName', 'symbol', 'price')
     					->where('mpcd.asOf', $lastDate)
+                        ->orderBy('companies.companyName')
     					->get();
+        $lastPrices['asOf'] = $lastDate;
 
     	return response()->json($lastPrices);
     }

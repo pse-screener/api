@@ -23,7 +23,7 @@ class routinesController extends Controller
             'harvestDownloadedCompaniesAndPrices.php',
             'materializeRawDataPerMinute.php',
             'materializeForPerCompanyPerTradingDay.php',
-            'sendAlertsToSubscribers.php',
+            'sendDailyAlertsToSubscribers.php',
             'testSms.php',  // if you want to test SMS.
             'artisan',  // used for to run "php artisan route:list"
 
@@ -294,6 +294,7 @@ class routinesController extends Controller
         print "Set device: " . $sms->setDevice('/dev/ttyUSB2') . "\n";
         print "Open device: " . $sms->openDevice() . "\n";
         print "Set baud rate: " . $sms->setBaudRate(115200) . "\n";
+
         foreach ($records as $record) {
             $priceCondition = "";
 
@@ -327,26 +328,30 @@ class routinesController extends Controller
                     if ($allowedToSendMessage) {
                         $msg = "PSE Alert: {$record->symbol} price has already reached $priceCondition your alert price of {$record->alertPrice}. Price as of {$record->asOf} is {$record->currentPrice}";
                         $sentMessage = $sms->sendSMS($record->mobileNo, $msg);
-                        print "Message sent!\n";
-                        // For now we'll just assume that message was sent because object Jsms\Sms has still difficulty in reading correct result.
-                        DB::transaction(function() {                        
-                            DB::table('alerts')->where('id', $record->id)->update(['sentToSms' => 1]);
-                            if (!in_array($telco->network, $consideredAsOtherNetwork))
-                                DB::table('smsLoad')->where('id', 1)->increment('sentToSameNetwork');
-                            else
-                                DB::table('smsLoad')->where('id', 1)->increment('sentToOtherNetwork');
 
-                            DB::table('smsLoad')->where('id', 1)->increment('sentMessages');
-                        });
+                        if ($sentMessage) {
+                            print "Message sent!\n";
+
+                            DB::beginTransaction();
+                                DB::table('alerts')->where('id', $record->id)->update(['sentToSms' => 1]);
+                                if (!in_array($telco->network, $consideredAsOtherNetwork))
+                                    DB::table('smsLoad')->where('id', 1)->increment('sentToSameNetwork');
+                                else
+                                    DB::table('smsLoad')->where('id', 1)->increment('sentToOtherNetwork');
+
+                                DB::table('smsLoad')->where('id', 1)->increment('sentMessages');
+                            DB::commit();
+                        } else {
+                            print "Message NOT sent!\n";
+                        }
                     } else {
                         print "Message Not allowed to send.\n";
-                    }                    
+                    }
                 } else {
                     print "Unknown network.\n";
                 }
             }
         }
-        print $sms->getDeviceResponse() . "\n";
         print "Device closed: " . $sms->closeDevice() . "\n";
     }
 
