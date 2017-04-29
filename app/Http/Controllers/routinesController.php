@@ -24,8 +24,10 @@ class routinesController extends Controller
             'materializeRawDataPerMinute.php',
             'materializeForPerCompanyPerTradingDay.php',
             'sendAlertsToSubscribers.php',
-            'testSms.php',
+            'testSms.php',  // if you want to test SMS.
             'artisan',  // used for to run "php artisan route:list"
+
+            /* The following, when there was specific date downloaded from the upstream. */
             'downloadCompaniesAndPricesByDate.php',
             'harvestDownloadedCompaniesAndPricesPerCompany.php'
         );
@@ -77,14 +79,23 @@ class routinesController extends Controller
     }
 
     /* being ran as needed. Will dump into json file. No restriction on when to run.
-        I created this one because I noticed upstream data doesn't include index percent_change. */
-    public function downloadCompaniesAndPricesByDate($date = '2017-04-26') {
-        $client = new Client();
+        I created this one because I noticed upstream data doesn't include index percent_change.
+        After running this, run
+        1. $this->harvestDownloadedCompaniesAndPricesPerCompany().
+        2. $this->materializeForPerCompanyPerTradingDay().
+    */
+    public function downloadCompaniesAndPricesByDate($date = NULL) {
+        if ($date == NULL)
+            exit("Specify the date.\n");
+
+        $date = \DateTime::createFromFormat('Y-m-d', $date);
+        $date = $date->format('Y-m-d');
 
         $symbols = \App\Company::select('symbol')->get();
 
         foreach ($symbols as $symbol) {
             try {
+                $client = new Client();
                 $response = $client->get("http://phisix-api4.appspot.com/stocks/{$symbol->symbol}.{$date}.json");
             } catch(RequestException  $e) {
                 echo Psr7\str($e->getRequest());
@@ -157,7 +168,6 @@ class routinesController extends Controller
         I created this one because I noticed upstream data doesn't include index percent_change. */
     public function harvestDownloadedCompaniesAndPricesPerCompany() {
         foreach (glob("/var/log/pse_monitor/raw_data/perCompany/*.json") as $filename) {
-            echo $filename . "\n";
             $data = json_decode(file_get_contents($filename), TRUE);    // returns assoc array
             $stocks = $data['stock'];
             $asOf = $data['as_of'];
