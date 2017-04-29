@@ -8,8 +8,10 @@ use App\Http\Requests;*/
 
 use Illuminate\Support\Facades\DB;
 
-use GuzzleHttp\Exception\GuzzleException;
+// use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Client;
+use GuzzleHttp\Psr7;
+use GuzzleHttp\Exception\RequestException;
 
 use Jsms;
 
@@ -24,6 +26,8 @@ class routinesController extends Controller
             'sendAlertsToSubscribers.php',
             'testSms.php',
             'artisan',  // used for to run "php artisan route:list"
+            'downloadCompaniesAndPricesByDate.php',
+            'harvestDownloadedCompaniesAndPricesPerCompany.php'
         );
 
         if (!in_array(basename($_SERVER['SCRIPT_FILENAME']), $allowedFromScripts))
@@ -72,6 +76,48 @@ class routinesController extends Controller
         print "Success!\n";
     }
 
+    /* being ran as needed. Will dump into json file. No restriction on when to run.
+        I created this one because I noticed upstream data doesn't include index percent_change. */
+    public function downloadCompaniesAndPricesByDate($date = '2017-04-26') {
+        $client = new Client();
+
+        $symbols = \App\Company::select('symbol')->get();
+
+        foreach ($symbols as $symbol) {
+            try {
+                $response = $client->get("http://phisix-api4.appspot.com/stocks/{$symbol->symbol}.{$date}.json");
+            } catch(RequestException  $e) {
+                echo Psr7\str($e->getRequest());
+                if ($e->hasResponse())
+                    echo Psr7\str($e->getResponse());
+
+                continue;
+            }
+            
+            if ($response->getStatusCode() != 200)
+                continue;
+
+            $data = json_decode($response->getBody(), TRUE);
+
+            if (!isset($data['as_of']))
+                exit("No data in upstream.\n");
+
+            $asOf = $data['as_of'];
+            preg_match("/(\d{4}-\d{2}-\d{2})/", $asOf, $match);
+            $asOfDateOnly = $match[0];
+            preg_match("/(\d{2}:\d{2}:\d{2})/", $asOf, $match);
+            $asOfTimeOnly = $match[0];
+
+            // now we want replace ":" to "_"
+            $pattern = '/:/';
+            $replacement = '_';
+            $formatedTime = preg_replace($pattern, $replacement, $asOfTimeOnly);
+            file_put_contents("/var/log/pse_monitor/raw_data/perCompany/{$symbol->symbol}_{$asOfDateOnly}T{$formatedTime}.json", json_encode($data));
+        }
+
+        print "Success!\n";
+    }
+
     private function createOrUpdateCompany(Array $stock) {
         // Company::updateOrCreate(['companyName' => $stock['name'], 'symbol' => $stock['symbol'], 'created_at' => date('Y-m-d H:i:s')]);
         DB::insert("INSERT INTO companies(companyName, symbol, created_at) VALUES(?, ?, now())
@@ -102,6 +148,37 @@ class routinesController extends Controller
 
             $basename = basename($filename);
             rename($filename, "/var/log/pse_monitor/raw_data/processed/$basename");
+        }
+
+        print "Success!\n";
+    }
+
+    /* Will insert new record or update if record already exists.
+        I created this one because I noticed upstream data doesn't include index percent_change. */
+    public function harvestDownloadedCompaniesAndPricesPerCompany() {
+        foreach (glob("/var/log/pse_monitor/raw_data/perCompany/*.json") as $filename) {
+            echo $filename . "\n";
+            $data = json_decode(file_get_contents($filename), TRUE);    // returns assoc array
+            $stocks = $data['stock'];
+            $asOf = $data['as_of'];
+            preg_match("/(\d{4}-\d{2}-\d{2})/", $asOf, $match);
+            $asOfDateOnly = $match[0];
+            preg_match("/(\d{2}:\d{2}:\d{2})/", $asOf, $match);
+            $asOfTimeOnly = $match[0];
+            $asOfDateTime = $asOfDateOnly . " " . $asOfTimeOnly;
+            $asOfDateTime = \DateTime::createFromFormat('Y-m-d H:i:s', $asOfDateTime);
+            
+            foreach ($stocks as $stock) {
+                $this->createOrUpdateCompany($stock);
+
+                DB::insert("INSERT INTO raw_records(symbol, amount, percentChange, volume, asOf, created_at) VALUES(?, ?, ?, ?, ?, now())
+                    ON DUPLICATE KEY UPDATE symbol = ?, amount = ?, percentChange = ?, volume = ?, asOf = ?",
+                    [$stock['symbol'], $stock['price']['amount'], 0, $stock['volume'], $asOfDateTime,
+                    $stock['symbol'], $stock['price']['amount'], 0, $stock['volume'], $asOfDateTime]);
+            }
+
+            $basename = basename($filename);
+            rename($filename, "/var/log/pse_monitor/raw_data/processed/perCompany/$basename");
         }
 
         print "Success!\n";

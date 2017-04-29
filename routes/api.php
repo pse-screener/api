@@ -30,3 +30,4 @@ Route::resource('/alert', 'AlertController');
 Route::resource('/dashboard', 'DashboardController');
 Route::resource('/profile', 'profile');
 Route::resource('/password', 'PasswordController');
+Route::resource('/lastPrices', 'lastPrices@getLastPrices');
