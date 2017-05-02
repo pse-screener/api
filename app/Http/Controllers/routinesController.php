@@ -195,18 +195,28 @@ class routinesController extends Controller
     }
 
     public function materializeRawDataPerMinute() {
-    	$rawRecords = DB::select("SELECT id, symbol, amount, percentChange, volume, asOf FROM raw_records WHERE materialized IS NULL OR materialized = 0");
+    	$rawRecords = DB::select("SELECT id, symbol, amount, percentChange, volume, asOf FROM raw_records WHERE (materialized IS NULL OR materialized = 0)");
 
-    	foreach ($rawRecords as $rawRecord) {
-    		$rawRecordId = $rawRecord->id;
-    		$symbol = $rawRecord->symbol;
-    		$price = $rawRecord->amount;
-    		$percentChange = $rawRecord->percentChange;
-    		$volume = $rawRecord->volume;
-    		$asOf = $rawRecord->asOf;
+        $rawRecords2 = [];
+        foreach ($rawRecords as $rawRecord) {
+            $rawRecords2[$rawRecord->id] = [];
+            $rawRecords2[$rawRecord->id]['symbol'] = $rawRecord->symbol;
+            $rawRecords2[$rawRecord->id]['price'] = $rawRecord->amount;
+            $rawRecords2[$rawRecord->id]['percentChange'] = $rawRecord->percentChange;
+            $rawRecords2[$rawRecord->id]['volume'] = $rawRecord->volume;
+            $rawRecords2[$rawRecord->id]['asOf'] = $rawRecord->asOf;
+        }
 
-    		DB::insert("call sp_aggregate_per_minute('$symbol', $price, '$asOf', $percentChange, $volume, $rawRecordId)");
-    	}
+        // file_put_contents('/tmp/materialized.txt', print_r($rawRecords2, true));
+
+        foreach ($rawRecords2 as $rawRecordId => $rawRecord) {
+            $symbol = $rawRecord['symbol'];
+            $price = $rawRecord['price'];
+            $asOf = $rawRecord['asOf'];
+            $percentChange = $rawRecord['percentChange'];
+            $volume = $rawRecord['volume'];
+            DB::statement("call sp_aggregate_per_minute('$symbol', $price, '$asOf', $percentChange, $volume, $rawRecordId)");
+        }
 
         print "Success!\n";
     }    
