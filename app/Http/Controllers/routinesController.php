@@ -27,7 +27,7 @@ class routinesController extends Controller
             'testSms.php',  // if you want to test SMS.
             'artisan',  // used for to run "php artisan route:list"
 
-            /* The following, when there was specific date downloaded from the upstream. */
+            /* The following, when there's specific date to be downloaded from the upstream. */
             'downloadCompaniesAndPricesByDate.php',
             'harvestDownloadedCompaniesAndPricesPerCompany.php'
         );
