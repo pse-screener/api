@@ -29,7 +29,10 @@ class routinesController extends Controller
 
             /* The following, when there's specific date to be downloaded from the upstream. */
             'downloadCompaniesAndPricesByDate.php',
-            'harvestDownloadedCompaniesAndPricesPerCompany.php'
+            'harvestDownloadedCompaniesAndPricesPerCompany.php',
+            
+            // SMS load status
+            'alertAdministratorLoadStatus.php',
         );
 
         if (!in_array(basename($_SERVER['SCRIPT_FILENAME']), $allowedFromScripts))
@@ -207,8 +210,6 @@ class routinesController extends Controller
             $rawRecords2[$rawRecord->id]['asOf'] = $rawRecord->asOf;
         }
 
-        // file_put_contents('/tmp/materialized.txt', print_r($rawRecords2, true));
-
         foreach ($rawRecords2 as $rawRecordId => $rawRecord) {
             $symbol = $rawRecord['symbol'];
             $price = $rawRecord['price'];
@@ -320,16 +321,16 @@ class routinesController extends Controller
                 $telco = DB::table('telcos')->select('network')->where('mobilePrefix', $mobilePrefix)->first();
 
                 if ($telco) {
-                    $smsLoad = DB::table('smsLoad')->select('allowedToBeSent', 'allowedToSameNetwork', 'allowedToOtherNetwork', 'sentToSameNetwork', 'sentToOtherNetwork', 'sentMessages')->where('id', 1)->first();
+                    $simCards = DB::table('simCards')->select('allowedToBeSent', 'allowedToSameNetwork', 'allowedToOtherNetwork', 'sentToSameNetwork', 'sentToOtherNetwork', 'sentMessages')->where('id', 1)->first();
 
                     $consideredAsOtherNetwork = explode(',', config('app.considered_as_other_network'));
                     if (!in_array($telco->network, $consideredAsOtherNetwork) &&
-                        ($smsLoad->allowedToSameNetwork > $smsLoad->sentToSameNetwork) &&
-                        ($smsLoad->allowedToBeSent > $smsLoad->sentMessages)) { // meaning they're in the same network because I currently use TnT
+                        ($simCards->allowedToSameNetwork > $simCards->sentToSameNetwork) &&
+                        ($simCards->allowedToBeSent > $simCards->sentMessages)) { // meaning they're in the same network because I currently use TnT
                         $allowedToSendMessage = true;
                     } elseif (in_array($telco->network, $consideredAsOtherNetwork) &&
-                        ($smsLoad->allowedToOtherNetwork > $smsLoad->sentToOtherNetwork) &&
-                        ($smsLoad->allowedToBeSent > $smsLoad->sentMessages)) { // meaning they're not in the same network because I currently use TnT
+                        ($simCards->allowedToOtherNetwork > $simCards->sentToOtherNetwork) &&
+                        ($simCards->allowedToBeSent > $simCards->sentMessages)) { // meaning they're not in the same network because I currently use TnT
                         $allowedToSendMessage = true;
                     } else {
                         $allowedToSendMessage = false;
@@ -344,12 +345,37 @@ class routinesController extends Controller
 
                             DB::beginTransaction();
                                 DB::table('alerts')->where('id', $record->id)->update(['sentToSms' => 1]);
-                                if (!in_array($telco->network, $consideredAsOtherNetwork))
-                                    DB::table('smsLoad')->where('id', 1)->increment('sentToSameNetwork');
-                                else
-                                    DB::table('smsLoad')->where('id', 1)->increment('sentToOtherNetwork');
 
-                                DB::table('smsLoad')->where('id', 1)->increment('sentMessages');
+                                $simCards = DB::table('simCards')->where('id', 1);
+                                if (!in_array($telco->network, $consideredAsOtherNetwork))
+                                    $simCards->increment('sentToSameNetwork');
+                                else
+                                    $simCards->increment('sentToOtherNetwork');
+
+                                DB::table('simCards')->where('id', 1)->increment('sentMessages');
+
+                                $simCards = DB::table('simCards')->where('id', 1);
+
+                                switch ($telco->network) {
+                                    case 'Smart':
+                                        $simCards->increment('sentToSmart');
+                                        break;
+                                    case 'Tnt':
+                                        $simCards->increment('sentToTnt');
+                                        break;
+                                    case 'Sun':
+                                        $simCards->increment('sentToSun');
+                                        break;
+                                    case 'Globe':
+                                        $simCards->increment('sentToGlobe');
+                                        break;
+                                    case 'Tm':
+                                        $simCards->increment('sentToTm');
+                                        break;
+                                    default:
+                                        // make sure that network known i.e., if you add new network in the telcos table, add column for it in order to be counted on every sms sent
+                                        break;
+                                }
                             DB::commit();
                         } else {
                             print "Message NOT sent!\n";
@@ -363,6 +389,23 @@ class routinesController extends Controller
             }
         }
         print "Device closed: " . $sms->closeDevice() . "\n";
+    }
+
+    /* Alert the administrator if the load is about to expire or the number of sms sent is about to reach its allowed. */
+    public function alertAdministratorLoadStatus() {
+        $status = DB::select('CALL sp_getSmsLoadStatus()')[0];
+
+        $sms = new Jsms\Sms;
+        $sms->delayInSeconds = 6;
+        print "Set device: " . $sms->setDevice('/dev/ttyUSB2') . "\n";
+        print "Open device: " . $sms->openDevice() . "\n";
+        print "Set baud rate: " . $sms->setBaudRate(115200) . "\n";
+        $sentMessage = $sms->sendSMS('09332162333', "PSE Alert! SMS unli is about to expire.\n");
+        if ($sentMessage) {
+            print "Message sent!\n";
+        else
+            print "Message Not sent!\n";
+        print "Device closed: " . $sms->closeDevice() . "\n"; 
     }
 
     public function testSms() {
