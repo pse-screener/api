@@ -50,11 +50,11 @@ class AlertController extends Controller
             exit(); //we don't allow though this has been checked in validate() above.
 
         $user = \Auth::user();
-        $subscriptions = \App\Subscriptions::whereRaw("DATE_FORMAT(validUntil, '%Y-%m-%d') >= DATE_FORMAT(NOW(), '%Y-%m-%d')")
+        /*$subscriptions = \App\Subscriptions::whereRaw("DATE_FORMAT(validUntil, '%Y-%m-%d') >= DATE_FORMAT(NOW(), '%Y-%m-%d')")
                         ->select('id')
                         ->where("userId", $user->id)
-                        ->get();
-
+                        ->get();*/
+        $subscriptions = \App\Subscriptions::select('id')->where("userId", $user->id)->get();
         return $subscriptions;
     }
 
