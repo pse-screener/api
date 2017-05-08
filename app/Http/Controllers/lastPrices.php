@@ -20,7 +20,7 @@ class lastPrices extends Controller
     }
 
     /* Gets company price by companies. */
-    public function getLastPrices() {
+    public function getLastClosedPrices() {
     	$lastDate = DB::table('materialize_per_company_daily')->max('asOf');
 
         $lastPrices = [];

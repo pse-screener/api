@@ -293,7 +293,7 @@ class routinesController extends Controller
                     JOIN companies ON alerts.companyId = companies.id
                     JOIN subscriptions ON subscriptions.id = alerts.subscriptionId
                     JOIN users ON users.id = subscriptions.userId
-                WHERE alerts.updated_at < MPCD.asOf
+                WHERE DATE_FORMAT(alerts.updated_at, '%Y-%m-%d') <= DATE_FORMAT(MPCD.asOf, '%Y-%m-%d')
                     AND sentToSms = 0
                     AND alerts.created_at < NOW()
                     AND users.active = 1";
@@ -378,7 +378,7 @@ class routinesController extends Controller
                                 }
                             DB::commit();
                         } else {
-                            print "Message NOT sent!\n";
+                            print "Message:$msg\nNOT sent!\n";
                         }
                     } else {
                         print "Message Not allowed to send.\n";
@@ -400,8 +400,8 @@ class routinesController extends Controller
         print "Set device: " . $sms->setDevice('/dev/ttyUSB2') . "\n";
         print "Open device: " . $sms->openDevice() . "\n";
         print "Set baud rate: " . $sms->setBaudRate(115200) . "\n";
-        $sentMessage = $sms->sendSMS('09332162333', "PSE Alert! SMS unli is about to expire.\n");
-        if ($sentMessage) {
+        $sentMessage = $sms->sendSMS('09332162333', "PSE Alert! SMS unli is about to expire on {$status->dateLoadExpiry} or other network bal is <=10.");
+        if ($sentMessage)
             print "Message sent!\n";
         else
             print "Message Not sent!\n";
