@@ -10,6 +10,8 @@ use Illuminate\Contracts\Auth\Guard;
 
 use Illuminate\Support\Facades\DB;
 
+use \App\Helpers;
+
 class AlertController extends Controller
 {
     /**
@@ -32,7 +34,7 @@ class AlertController extends Controller
         //
     }
 
-    private function checkData($request)
+    private function checkSubscription($request)
     {
         $request["price"] = str_replace(',', '' , $request->price); // remove commas on price.
 
@@ -58,6 +60,20 @@ class AlertController extends Controller
         return $subscriptions;
     }
 
+    private function checkLastClosedPrice($companyId) {
+        $lastClosedDate = DB::table('materialize_per_company_daily')->max('asOf');
+
+        $lastClosedPrice = DB::table('companies')
+                ->join('materialize_per_company_daily as mpcd', 'companies.id', '=', 'mpcd.companyId')
+                ->select('price')
+                ->where('mpcd.asOf', $lastClosedDate)
+                ->where('companyId', $companyId)
+                ->orderBy('companies.companyName')
+                ->first();
+
+        return $lastClosedPrice;
+    }
+
     /**
      * Store a newly created resource in storage.
      *
@@ -66,10 +82,23 @@ class AlertController extends Controller
      */
     public function store(Request $request)
     {
-        $subscriptions = $this->checkData($request);
+        $subscriptions = $this->checkSubscription($request);
 
         if ($subscriptions->count() == 0)
             return response()->json(["code" => 1, "message" => "No active subscription."]);
+
+        // now compare the prices
+        $lastClosedPrice = $this->checkLastClosedPrice($request->companyId);
+
+        if ($request->priceCondition == "movesBelow") {
+            if ($request->price > $lastClosedPrice->price)
+                return response()->json(["code" => 1, "message" => "Last closed price $lastClosedPrice->price is already below your alert price."]);
+        } elseif ($request->priceCondition == "movesAbove") {
+            if ($request->price < $lastClosedPrice->price)
+                return response()->json(["code" => 1, "message" => "Last closed price $lastClosedPrice->price is already above your alert price."]);
+        } else {
+            return response()->json(["code" => 1, "message" => "Unknown price condition."]);
+        }
 
         // we only need the first record no matter how many are active subscription.
         $alertCount =\App\Alerts::where('subscriptionId', $subscriptions[0]->id)->count();
@@ -91,7 +120,7 @@ class AlertController extends Controller
 
             $alert->save();
 
-            break;  // no matter how many subscription, we only need 1 entry.
+            break;  // no matter how many subscriptions, we only need 1 entry.
         }
 
         return response()->json(["code" => 0, "message" => "Successful."]);
@@ -138,7 +167,18 @@ class AlertController extends Controller
 
         $request->request->add(['companyId' => $companyId]);
 
-        $subscriptions = $this->checkData($request);
+        $subscriptions = $this->checkSubscription($request);
+        $lastClosedPrice = $this->checkLastClosedPrice($companyId);
+
+        if ($request->priceCondition == "movesBelow") {
+            if ($request->price > $lastClosedPrice->price)
+                return response()->json(["code" => 1, "message" => "Last closed price $lastClosedPrice->price is already below your alert price."]);
+        } elseif ($request->priceCondition == "movesAbove") {
+            if ($request->price < $lastClosedPrice->price)
+                return response()->json(["code" => 1, "message" => "Last closed price $lastClosedPrice->price is already above your alert price."]);
+        } else {
+            return response()->json(["code" => 1, "message" => "Unknown price condition."]);
+        }
         
         foreach ($subscriptions as $subscription) {
             $alert =  \App\Alerts::find($id);
