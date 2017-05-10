@@ -32,7 +32,10 @@ class DashboardController extends Controller
                     ->orderBy('companyName', 'ASC')
                     ->get();
 
-        $dashboard = ['alerts' => $alerts];
+        $lastClosedDate = \DateTime::createFromFormat('Y-m-d', $lastClosedDate);
+        $lastClosedDate = $lastClosedDate->format("D M d, Y");
+
+        $dashboard = ['alerts' => $alerts, 'asOf' => $lastClosedDate];
 
         return response()->json($dashboard);
     }

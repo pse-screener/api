@@ -296,6 +296,7 @@ class routinesController extends Controller
                 WHERE DATE_FORMAT(alerts.updated_at, '%Y-%m-%d') <= DATE_FORMAT(MPCD.asOf, '%Y-%m-%d')
                     AND sentToSms = 0
                     AND alerts.updated_at < NOW()
+                    AND DATE_FORMAT(MPCD.asOf, '%Y-%m-%d') = DATE_FORMAT(NOW(), '%Y-%m-%d')
                     AND users.active = 1";
 
         $records = DB::select($sql);
@@ -381,7 +382,7 @@ class routinesController extends Controller
                                 }
                             DB::commit();
                         } else {
-                            print "Message:$msg\nNOT sent!\n";
+                            print "\"$msg\"\nNOT sent!\n";
                         }
                     } else {
                         print "Message Not allowed to send.\n";
