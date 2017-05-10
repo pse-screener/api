@@ -47,6 +47,17 @@ class ForgotPasswordController extends Controller
     {
         $this->validate($request, ['email' => 'required|email']);
 
+        // another way. Success!
+        // https://laracasts.com/discuss/channels/laravel/get-a-password-reset-token. Thanks to @robgeorgeuk.
+        $user = \App\User::where('email', $request->only('email'))->first();
+
+        if (!$user)
+            return response()->json(["code" => 1, "message" => "Email not found."]);
+
+        $token = app('auth.password.broker')->createToken($user);
+        $user->notify(new My_PasswordReset($token));
+        return response()->json(["code" => 0, "message" => "Successfully sent your reset password link. Please check your email address."]);
+
         // We will send the password reset link to this user. Once we have attempted
         // to send the link, we will examine the response then see the message we
         // need to show to the user. Finally, we'll send out a proper response.
@@ -73,12 +84,5 @@ class ForgotPasswordController extends Controller
         }
 
         return response()->json(["code" => 1, "message" => trans($response)]);*/
-
-        // another way. Success!    
-        // https://laracasts.com/discuss/channels/laravel/get-a-password-reset-token. Thanks to @robgeorgeuk.
-        $user = \App\User::where('email', $request->only('email'))->first();
-        $token = app('auth.password.broker')->createToken($user);
-        $user->notify(new My_PasswordReset($token));
-
     }
 }

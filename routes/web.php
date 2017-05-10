@@ -24,12 +24,13 @@ Route::get('/downloadCompaniesAndPrices', 'routinesController@downloadCompaniesA
 Route::get('/harvestDownloadedCompaniesAndPrices', 'routinesController@harvestDownloadedCompaniesAndPrices');
 Route::get('/materializeRawDataPerMinute', 'routinesController@materializeRawDataPerMinute');
 Route::get('/materializeForPerCompanyPerTradingDay', 'routinesController@materializeForPerCompanyPerTradingDay');
-Route::get('/performEOD', 'routinesController@performEOD');
+// Route::get('/performEOD', 'routinesController@performEOD');	// looks like we don't need this anymore.
 Route::get('/sendDailyAlertsToSubscribers', 'routinesController@sendDailyAlertsToSubscribers');
 Route::get('/testSMS', 'routinesController@testSMS');
 
+// if there's lacking date
 Route::get('/downloadCompaniesAndPricesByDate/{date}', 'routinesController@downloadCompaniesAndPricesByDate');
 Route::get('/harvestDownloadedCompaniesAndPricesPerCompany', 'routinesController@harvestDownloadedCompaniesAndPricesPerCompany');
 
-// Let's stop this for the meantime.
-// Route::get('auth/csrf_token', 'CsrfController@csrf_token');
+// Alert SMS Load status
+Route::get('/alertAdministratorLoadStatus', 'routinesController@alertAdministratorLoadStatus');

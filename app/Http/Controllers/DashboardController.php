@@ -19,19 +19,23 @@ class DashboardController extends Controller
      */
     public function index()
     {
+        $lastClosedDate = DB::table('materialize_per_company_daily')->max('asOf');
+
         $user = \Auth::user();
         $alerts = DB::table('alerts')
                     ->join('companies', 'alerts.companyId', '=', 'companies.id')
                     ->join('subscriptions', 'alerts.subscriptionId', '=', 'subscriptions.id')
-                    ->select('alerts.id', 'symbol', 'companyName', 'priceCondition', 'price', 'sentToSms')
+                    ->join('materialize_per_company_daily as mpcd', 'companies.id', '=', 'mpcd.companyId')
+                    ->select('alerts.id', 'symbol', 'companyName', 'priceCondition', 'alerts.price', 'sentToSms', 'mpcd.price as lastClosedPrice')
                     ->where('subscriptions.userId', '=', $user->id)
+                    ->where('mpcd.asOf', $lastClosedDate)
                     ->orderBy('companyName', 'ASC')
                     ->get();
 
-        $user = \Auth::user();
-        $subscriptions = DB::select("call sp_getActiveSubscription($user->id)");
+        $lastClosedDate = \DateTime::createFromFormat('Y-m-d', $lastClosedDate);
+        $lastClosedDate = $lastClosedDate->format("D M d, Y");
 
-        $dashboard = ['alerts' => $alerts, 'subscriptions' => $subscriptions];
+        $dashboard = ['alerts' => $alerts, 'asOf' => $lastClosedDate];
 
         return response()->json($dashboard);
     }
