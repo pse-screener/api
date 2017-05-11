@@ -12,7 +12,8 @@
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    // return view('welcome');
+    return redirect('public');	// http://170.168.21.55/public/#/
 });
 
 Auth::routes();
