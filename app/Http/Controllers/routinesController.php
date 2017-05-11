@@ -435,7 +435,50 @@ class routinesController extends Controller
         print "Set device: " . $sms->setDevice('/dev/ttyUSB2') . "\n";
         print "Open device: " . $sms->openDevice() . "\n";
         print "Set baud rate: " . $sms->setBaudRate(115200) . "\n";
+        $records = DB::table('smsMessages')->select('recipient', 'message')->where('status', 'draft');
 
+        $sentMessage = $sms->sendSMS($record->mobileNo, $msg);
+
+        if ($sentMessage) {
+            print "Message sent!\n";
+
+            DB::beginTransaction();
+                DB::table('alerts')->where('id', $record->id)->update(['sentToSms' => 1]);
+
+                $simCards = DB::table('simCards')->where('id', 1);
+                if (!in_array($telco->network, $consideredAsOtherNetwork))
+                    $simCards->increment('sentToSameNetwork');
+                else
+                    $simCards->increment('sentToOtherNetwork');
+
+                DB::table('simCards')->where('id', 1)->increment('sentMessages');
+
+                $simCards = DB::table('simCards')->where('id', 1);
+
+                switch ($telco->network) {
+                    case 'Smart':
+                        $simCards->increment('sentToSmart');
+                        break;
+                    case 'Tnt':
+                        $simCards->increment('sentToTnt');
+                        break;
+                    case 'Sun':
+                        $simCards->increment('sentToSun');
+                        break;
+                    case 'Globe':
+                        $simCards->increment('sentToGlobe');
+                        break;
+                    case 'Tm':
+                        $simCards->increment('sentToTm');
+                        break;
+                    default:
+                        // make sure that network known i.e., if you add new network in the telcos table, add column for it in order to be counted on every sms sent
+                        break;
+                }
+            DB::commit();
+        } else {
+            print "\"$msg\"\nNOT sent!\n";
+        }
         print "Device closed: " . $sms->closeDevice() . "\n";
     }
 
