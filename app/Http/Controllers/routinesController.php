@@ -287,7 +287,7 @@ class routinesController extends Controller
     }
 
     /* Intended to run at the end of the trading day. */
-    public function sendDailyAlertsToSubscribers() {
+    public function sendDailyAlertsToSubscribers2() {
         $sql = "SELECT alerts.id, companies.symbol, alerts.priceCondition, alerts.price alertPrice, MPCD.price currentPrice, MPCD.asOf, users.mobileNo
                 FROM alerts JOIN materialize_per_company_daily MPCD ON alerts.companyId = MPCD.companyId
                     JOIN companies ON alerts.companyId = companies.id
@@ -392,6 +392,50 @@ class routinesController extends Controller
                 }
             }
         }
+        print "Device closed: " . $sms->closeDevice() . "\n";
+    }
+
+    public function sendDailyAlertsToSubscribers() {
+        $sql = "SELECT alerts.id, companies.symbol, alerts.priceCondition, alerts.price alertPrice, MPCD.price currentPrice, MPCD.asOf, users.mobileNo
+                FROM alerts JOIN materialize_per_company_daily MPCD ON alerts.companyId = MPCD.companyId
+                    JOIN companies ON alerts.companyId = companies.id
+                    JOIN subscriptions ON subscriptions.id = alerts.subscriptionId
+                    JOIN users ON users.id = subscriptions.userId
+                WHERE DATE_FORMAT(alerts.updated_at, '%Y-%m-%d') <= DATE_FORMAT(MPCD.asOf, '%Y-%m-%d')
+                    AND sentToSms = 0
+                    AND alerts.updated_at < NOW()
+                    AND DATE_FORMAT(MPCD.asOf, '%Y-%m-%d') = DATE_FORMAT(NOW(), '%Y-%m-%d')
+                    AND users.active = 1";
+
+        $records = DB::select($sql);
+
+        foreach ($records as $record) {
+            $priceCondition = "";
+
+            if ($record->priceCondition == 'movesAbove') {
+                if ($record->alertPrice < $record->currentPrice) {
+                    $priceCondition = "above";
+                }
+            } elseif ($record->priceCondition == 'movesBelow') {
+                if ($record->alertPrice > $record->currentPrice) {
+                    $priceCondition = "below";
+                }
+            }
+
+            if ($priceCondition != "") {
+                $message = "PSE Alert!\n{$record->symbol} price has already reached $priceCondition your alert price of {$record->alertPrice}. Price as of {$record->asOf} is {$record->currentPrice}";
+                DB::insert('smsMessages')->insert(['recipient' => $record->mobileNo, 'message'= > $message, 'status' => 'draft']);
+            }
+        }
+    }
+
+    public function sendSmsMessages() {
+        $sms = new Jsms\Sms;
+        $sms->delayInSeconds = 6;
+        print "Set device: " . $sms->setDevice('/dev/ttyUSB2') . "\n";
+        print "Open device: " . $sms->openDevice() . "\n";
+        print "Set baud rate: " . $sms->setBaudRate(115200) . "\n";
+
         print "Device closed: " . $sms->closeDevice() . "\n";
     }
 
