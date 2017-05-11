@@ -23,7 +23,7 @@
 		$ php artisan cache:clear
 ```
 		to fix the internal server error.
-
+Note: 6, 7 are now optional since Route '/' already redirects to /public. So if you want to follow, change it to return view('welcome');
 6. In order to check if Laravel installation is working, with your browser, http://<your_site>.
 7. Check also the http://<your_site>/login and http://<your_site>/register.
 8. Now to start with, go to http://<your_site>/public
