@@ -470,7 +470,8 @@ class routinesController extends Controller
 
                     if ($sentMessage) {
                         DB::beginTransaction();
-                            DB::table('alerts')->where('id', $smsMessage->alertId)->update(['sentToSms' => 1]);
+                            if ($smsMessage->alertId)
+                                DB::table('alerts')->where('id', $smsMessage->alertId)->update(['sentToSms' => 1]);
 
                             $simCards = DB::table('simCards')->where('id', 1);
                             if (!in_array($telco->network, $consideredAsOtherNetwork))
@@ -497,7 +498,7 @@ class routinesController extends Controller
                                     $simCards->increment('sentToTm');
                                     break;
                                 default:
-                                    // make sure that network known i.e., if you add new network in the telcos table, add column for it in order to be counted on every sms sent
+                                    // make sure that network is known i.e., if you add new network in the telcos table, add column for it in order to be counted on every sms sent
                                     break;
                             }
                         DB::commit();
