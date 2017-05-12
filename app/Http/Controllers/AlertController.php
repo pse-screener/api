@@ -71,7 +71,14 @@ class AlertController extends Controller
                 ->orderBy('companies.companyName')
                 ->first();
 
-        return $lastClosedPrice;
+
+        if ($lastClosedPrice) {
+            return $lastClosedPrice;
+        } else {    // sometimes the query doesn't return record so I set it to 0.00
+            $lastClosedPrice = new \StdClass;
+            $lastClosedPrice->price = "0.00";
+            return $lastClosedPrice;
+        }
     }
 
     /**
@@ -91,10 +98,10 @@ class AlertController extends Controller
         $lastClosedPrice = $this->checkLastClosedPrice($request->companyId);
 
         if ($request->priceCondition == "movesBelow") {
-            if ($request->price > $lastClosedPrice->price)
+            if (($request->price > $lastClosedPrice->price) && ($lastClosedPrice->price != "0.00"))
                 return response()->json(["code" => 1, "message" => "Last closed price $lastClosedPrice->price is already below your alert price."]);
         } elseif ($request->priceCondition == "movesAbove") {
-            if ($request->price < $lastClosedPrice->price)
+            if (($request->price < $lastClosedPrice->price) && ($lastClosedPrice->price != "0.00"))
                 return response()->json(["code" => 1, "message" => "Last closed price $lastClosedPrice->price is already above your alert price."]);
         } else {
             return response()->json(["code" => 1, "message" => "Unknown price condition."]);

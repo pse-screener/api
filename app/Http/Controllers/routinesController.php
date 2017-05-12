@@ -30,6 +30,8 @@ class routinesController extends Controller
             /* The following, when there's specific date to be downloaded from the upstream. */
             'downloadCompaniesAndPricesByDate.php',
             'harvestDownloadedCompaniesAndPricesPerCompany.php',
+
+            'sendSmsMessages.php',
             
             // SMS load status
             'alertAdministratorLoadStatus.php',
@@ -286,8 +288,7 @@ class routinesController extends Controller
     	DB::statement("call sp_perform_eod()");
     }
 
-    /* Intended to run at the end of the trading day. */
-    public function sendDailyAlertsToSubscribers() {
+    public function sendDailyAlertsToSubscribers2() {
         $sql = "SELECT alerts.id, companies.symbol, alerts.priceCondition, alerts.price alertPrice, MPCD.price currentPrice, MPCD.asOf, users.mobileNo
                 FROM alerts JOIN materialize_per_company_daily MPCD ON alerts.companyId = MPCD.companyId
                     JOIN companies ON alerts.companyId = companies.id
@@ -395,7 +396,125 @@ class routinesController extends Controller
         print "Device closed: " . $sms->closeDevice() . "\n";
     }
 
+    /* Intended to run at the end of the trading day. */
+    public function sendDailyAlertsToSubscribers() {
+        $sql = "SELECT alerts.id, companies.symbol, alerts.priceCondition, alerts.price alertPrice, MPCD.price currentPrice, MPCD.asOf, users.mobileNo
+                FROM alerts JOIN materialize_per_company_daily MPCD ON alerts.companyId = MPCD.companyId
+                    JOIN companies ON alerts.companyId = companies.id
+                    JOIN subscriptions ON subscriptions.id = alerts.subscriptionId
+                    JOIN users ON users.id = subscriptions.userId
+                WHERE DATE_FORMAT(alerts.updated_at, '%Y-%m-%d') <= DATE_FORMAT(MPCD.asOf, '%Y-%m-%d')
+                    AND sentToSms = 0
+                    AND alerts.updated_at < NOW()
+                    AND DATE_FORMAT(MPCD.asOf, '%Y-%m-%d') = DATE_FORMAT(NOW(), '%Y-%m-%d')
+                    AND users.active = 1";
+
+        $records = DB::select($sql);
+
+        foreach ($records as $record) {
+            $priceCondition = "";
+
+            if ($record->priceCondition == 'movesAbove') {
+                if ($record->alertPrice < $record->currentPrice) {
+                    $priceCondition = "above";
+                }
+            } elseif ($record->priceCondition == 'movesBelow') {
+                if ($record->alertPrice > $record->currentPrice) {
+                    $priceCondition = "below";
+                }
+            }
+
+            if ($priceCondition != "") {
+                $message = "PSE Alert!\n{$record->symbol} price has already reached $priceCondition your alert price of {$record->alertPrice}. Price as of {$record->asOf} is {$record->currentPrice}";
+                DB::table('smsMessages')->insert(['alertId' => $record->id, 'recipient' => $record->mobileNo, 'message'=> $message, 'status' => 'draft']);
+            }
+        }
+    }
+
+    /* This will scan smsMessages table and send it to recipient. */
+    public function sendSmsMessages() {
+        $sms = new Jsms\Sms;
+        $sms->delayInSeconds = 6;
+        print "Set device: " . $sms->setDevice('/dev/ttyUSB2') . "\n";
+        print "Open device: " . $sms->openDevice() . "\n";
+        print "Set baud rate: " . $sms->setBaudRate(115200) . "\n";
+        
+        $records = DB::table('smsMessages')->select('id', 'alertId', 'recipient', 'message', 'status')->whereIn('status', ['draft', 'outbox'])->get();
+
+        $smsMessages = [];
+        foreach ($records as $record)
+            $smsMessages[] = ['id'=> $record->id, 'alertId' => $record->alertId, 'recipient' => $record->recipient, 'message' => $record->message, 'status' => $record->status];
+
+        foreach ($smsMessages as $smsMessage) {
+            $mobilePrefix = substr($smsMessage->recipient, 0, 4);
+            $telco = DB::table('telcos')->select('network')->where('mobilePrefix', $mobilePrefix)->first();
+
+            if ($telco) {
+                $simCards = DB::table('simCards')->select('allowedToBeSent', 'allowedToSameNetwork', 'allowedToOtherNetwork', 'sentToSameNetwork', 'sentToOtherNetwork', 'sentMessages')->where('id', 1)->first();
+
+                $consideredAsOtherNetwork = explode(',', config('app.considered_as_other_network'));
+                if (!in_array($telco->network, $consideredAsOtherNetwork) &&
+                    ($simCards->allowedToSameNetwork >= $simCards->sentToSameNetwork) &&
+                    ($simCards->allowedToBeSent >= $simCards->sentMessages)) { // meaning they're in the same network because I currently use TnT
+                    $allowedToSendMessage = true;
+                } elseif (in_array($telco->network, $consideredAsOtherNetwork) &&
+                    ($simCards->allowedToOtherNetwork >= $simCards->sentToOtherNetwork) &&
+                    ($simCards->allowedToBeSent >= $simCards->sentMessages)) { // meaning they're not in the same network because I currently use TnT
+                    $allowedToSendMessage = true;
+                } else {
+                    $allowedToSendMessage = false;
+                }
+
+                if ($allowedToSendMessage) {
+                    $sentMessage = $sms->sendSMS($smsMessage->recipient, $smsMessage->message);
+
+                    if ($sentMessage) {
+                        DB::beginTransaction();
+                            if ($smsMessage->alertId)
+                                DB::table('alerts')->where('id', $smsMessage->alertId)->update(['sentToSms' => 1]);
+
+                            $simCards = DB::table('simCards')->where('id', 1);
+                            if (!in_array($telco->network, $consideredAsOtherNetwork))
+                                $simCards->increment('sentToSameNetwork');
+                            else
+                                $simCards->increment('sentToOtherNetwork');
+
+                            DB::table('simCards')->where('id', 1)->increment('sentMessages');
+
+                            switch ($telco->network) {
+                                case 'Smart':
+                                    $simCards->increment('sentToSmart');
+                                    break;
+                                case 'Tnt':
+                                    $simCards->increment('sentToTnt');
+                                    break;
+                                case 'Sun':
+                                    $simCards->increment('sentToSun');
+                                    break;
+                                case 'Globe':
+                                    $simCards->increment('sentToGlobe');
+                                    break;
+                                case 'Tm':
+                                    $simCards->increment('sentToTm');
+                                    break;
+                                default:
+                                    // make sure that network is known i.e., if you add new network in the telcos table, add column for it in order to be counted on every sms sent
+                                    break;
+                            }
+                        DB::commit();
+                    } else {
+                        if ($smsMessage->status != 'outbox')
+                            DB::table('smsMessages')->where('id', $smsMessage['id'])->update(['status' => 'outbox']);
+                    }
+                }
+            }
+        }
+
+        print "Device closed: " . $sms->closeDevice() . "\n";
+    }
+
     /* Alert the administrator if the load is about to expire or the number of sms sent is about to reach its allowed. */
+    /* To be implemented soon: Instead of sending SMS on its own, give it to $this->sendSmsMessages(). */
     public function alertAdministratorLoadStatus() {
         $status = DB::select('CALL sp_getSmsLoadStatus()')[0];
 

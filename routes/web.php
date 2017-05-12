@@ -33,5 +33,8 @@ Route::get('/testSMS', 'routinesController@testSMS');
 Route::get('/downloadCompaniesAndPricesByDate/{date}', 'routinesController@downloadCompaniesAndPricesByDate');
 Route::get('/harvestDownloadedCompaniesAndPricesPerCompany', 'routinesController@harvestDownloadedCompaniesAndPricesPerCompany');
 
+// this will scan smsMessages table and send it to recipient
+Route::get('/sendSmsMessages', 'routinesController@sendSmsMessages');
+
 // Alert SMS Load status
 Route::get('/alertAdministratorLoadStatus', 'routinesController@alertAdministratorLoadStatus');

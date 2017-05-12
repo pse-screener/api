@@ -22,15 +22,13 @@ class DashboardController extends Controller
         $lastClosedDate = DB::table('materialize_per_company_daily')->max('asOf');
 
         $user = \Auth::user();
-        $alerts = DB::table('alerts')
-                    ->join('companies', 'alerts.companyId', '=', 'companies.id')
-                    ->join('subscriptions', 'alerts.subscriptionId', '=', 'subscriptions.id')
-                    ->join('materialize_per_company_daily as mpcd', 'companies.id', '=', 'mpcd.companyId')
-                    ->select('alerts.id', 'symbol', 'companyName', 'priceCondition', 'alerts.price', 'sentToSms', 'mpcd.price as lastClosedPrice')
-                    ->where('subscriptions.userId', '=', $user->id)
-                    ->where('mpcd.asOf', $lastClosedDate)
-                    ->orderBy('companyName', 'ASC')
-                    ->get();
+        $alerts = DB::select(DB::raw("SELECT alerts.id, symbol, companyName, priceCondition, alerts.price, sentToSms,
+                                (SELECT price FROM materialize_per_company_daily mpcd WHERE mpcd.companyId = companies.id
+                                            AND mpcd.asOf = :lastClosedDate) lastClosedPrice
+                            FROM alerts JOIN companies ON alerts.companyId = companies.id
+                            JOIN subscriptions ON alerts.subscriptionId = subscriptions.id
+                            WHERE subscriptions.userId = :userId
+                            ORDER BY companyName ASC"), array('lastClosedDate' => $lastClosedDate, 'userId' => $user->id));
 
         $lastClosedDate = \DateTime::createFromFormat('Y-m-d', $lastClosedDate);
         $lastClosedDate = $lastClosedDate->format("D M d, Y");
