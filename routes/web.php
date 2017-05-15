@@ -33,6 +33,9 @@ Route::get('/testSMS', 'routinesController@testSMS');
 Route::get('/downloadCompaniesAndPricesByDate/{date}', 'routinesController@downloadCompaniesAndPricesByDate');
 Route::get('/harvestDownloadedCompaniesAndPricesPerCompany', 'routinesController@harvestDownloadedCompaniesAndPricesPerCompany');
 
+// if current date is lacking
+Route::get('/downloadCompaniesAndPricesByCurrentDate', 'routinesController@downloadCompaniesAndPricesByCurrentDate');
+
 // this will scan smsMessages table and send it to recipient
 Route::get('/sendSmsMessages', 'routinesController@sendSmsMessages');
 

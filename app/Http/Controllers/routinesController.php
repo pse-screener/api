@@ -23,13 +23,16 @@ class routinesController extends Controller
             'harvestDownloadedCompaniesAndPrices.php',
             'materializeRawDataPerMinute.php',
             'materializeForPerCompanyPerTradingDay.php',
-            'sendDailyAlertsToSubscribers.php',
+            'sendDailyAlertsToSubscribers.php', // 
             'testSms.php',  // if you want to test SMS.
             'artisan',  // used for to run "php artisan route:list"
 
             /* The following, when there's specific date to be downloaded from the upstream. */
             'downloadCompaniesAndPricesByDate.php',
             'harvestDownloadedCompaniesAndPricesPerCompany.php',
+
+            /* If current date is missing. */
+            'downloadCompaniesAndPricesByCurrentDate.php',
 
             'sendSmsMessages.php',
             
@@ -83,11 +86,12 @@ class routinesController extends Controller
         print "Success!\n";
     }
 
-    /* being ran as needed. Will dump into json file. No restriction on when to run.
+    /* Run as needed. Will dump into json file. No restriction on when to run.
         I created this one because I noticed upstream data doesn't include index percent_change.
         After running this, run
         1. $this->harvestDownloadedCompaniesAndPricesPerCompany().
-        2. $this->materializeForPerCompanyPerTradingDay().
+        2. $this->materializeRawDataPerMinute();
+        3. $this->materializeForPerCompanyPerTradingDay().
     */
     public function downloadCompaniesAndPricesByDate($date = NULL) {
         if ($date == NULL)
@@ -130,6 +134,43 @@ class routinesController extends Controller
             $formatedTime = preg_replace($pattern, $replacement, $asOfTimeOnly);
             file_put_contents("/var/log/pse_monitor/raw_data/perCompany/{$symbol->symbol}_{$asOfDateOnly}T{$formatedTime}.json", json_encode($data));
         }
+
+        print "Success!\n";
+    }
+
+    /* Run if you want current date. Will dump into json file. No restriction on when to run.
+        I realized running $this->downloadCompaniesAndPricesByDate() can miss a company because it iterate from DB result. So if there are new, it won't get the data.
+        After running this, run
+        1. $this->harvestDownloadedCompaniesAndPrices().
+        2. $this->materializeRawDataPerMinute.php
+        3. $this->materializeForPerCompanyPerTradingDay().
+    */
+    public function downloadCompaniesAndPricesByCurrentDate() {
+        try {
+            $client = new Client();
+            $response = $client->get("http://phisix-api.appspot.com/stocks.json");
+        } catch(RequestException  $e) {
+            echo Psr7\str($e->getRequest());
+            if ($e->hasResponse())
+                echo Psr7\str($e->getResponse());
+        }
+
+        $data = json_decode($response->getBody(), TRUE);
+
+        if (!isset($data['as_of']))
+            exit("No data in upstream.\n");
+
+        $asOf = $data['as_of'];
+        preg_match("/(\d{4}-\d{2}-\d{2})/", $asOf, $match);
+        $asOfDateOnly = $match[0];
+        preg_match("/(\d{2}:\d{2}:\d{2})/", $asOf, $match);
+        $asOfTimeOnly = $match[0];
+
+        // now we want replace ":" to "_"
+        $pattern = '/:/';
+        $replacement = '_';
+        $formatedTime = preg_replace($pattern, $replacement, $asOfTimeOnly);
+        file_put_contents("/var/log/pse_monitor/raw_data/{$asOfDateOnly}T{$formatedTime}.json", json_encode($data));
 
         print "Success!\n";
     }
@@ -288,6 +329,7 @@ class routinesController extends Controller
     	DB::statement("call sp_perform_eod()");
     }
 
+    /* Soon to be removed. Just for reference. */
     public function sendDailyAlertsToSubscribers2() {
         $sql = "SELECT alerts.id, companies.symbol, alerts.priceCondition, alerts.price alertPrice, MPCD.price currentPrice, MPCD.asOf, users.mobileNo
                 FROM alerts JOIN materialize_per_company_daily MPCD ON alerts.companyId = MPCD.companyId
