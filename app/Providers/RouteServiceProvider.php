@@ -69,11 +69,15 @@ class RouteServiceProvider extends ServiceProvider
     protected function mapApiRoutes()
     {
         Route::group([
-            'middleware' => 'auth:api',
             'namespace' => $this->namespace,
-            'prefix' => 'api/v1',
-        ], function ($router) {
-            require base_path('routes/api.php');
+            'prefix' => 'api/v1'
+        ], function ($router) { // Unprotected API routes
+            Route::post('/emailConfirmation/{hash}', 'Auth\RegisterController@emailConfirmation');
+
+            Route::group(['middleware' => 'auth:api'], function($router) {
+                // Inside here are protected API routes
+                require base_path('routes/api.php');
+            });
         });
     }
 }

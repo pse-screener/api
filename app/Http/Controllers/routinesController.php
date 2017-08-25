@@ -46,7 +46,7 @@ class routinesController extends Controller
 
     /* being ran every minute on weekdays; Will dump into json file. */
     public function downloadCompaniesAndPrices() {
-    	if (!config('app.download_raw_data_beyond_trading_window')) {
+    	/*if (!config('app.download_raw_data_beyond_trading_window')) {
     		if (date("N") > 5) {
     			exit("Environment doesn't allow download raw data beyong trading hours.\n");
     		}
@@ -61,7 +61,7 @@ class routinesController extends Controller
     		if (!($currentDateTime >= $am_trade_start && $currentDateTime <= $am_trade_end) || !($currentDateTime >= $pm_trade_start && $currentDateTime <= $pm_trade_end)) {
     			exit("Environment doesn't allow download raw data beyong trading hours.\n");
     		}
-    	}
+    	}*/
 
     	$client = new Client();
 

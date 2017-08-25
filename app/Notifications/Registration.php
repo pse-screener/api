@@ -7,7 +7,7 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 
-class My_PasswordReset extends Notification
+class Registration extends Notification
 {
     use Queueable;
 
@@ -43,9 +43,9 @@ class My_PasswordReset extends Notification
     public function toMail($notifiable)
     {
         return (new MailMessage)
-                    ->subject('Password Reset')
-                    ->line('You received this email because you have requested a password reset request for your account.')
-                    ->action('Password Reset', url('/public/#/forgotPasswordReset', $this->token))
+                    ->subject('PSE Screener Registration.')
+                    ->line('You received this email because you registered to PSE Screener. To confirm this email, click on the button below.')
+                    ->action('Confirm email', url('/public/#/emailConfirmation', $this->token))
                     ->line('If you did not request a password reset, no further action is required.');
     }
 

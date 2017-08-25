@@ -9,6 +9,9 @@ use Illuminate\Foundation\Auth\RegistersUsers;
 
 use Illuminate\Http\Request;
 
+use Illuminate\Auth\Passwords\PasswordBroker;
+use App\Notifications\Registration;
+
 class RegisterController extends Controller
 {
     /*
@@ -76,7 +79,7 @@ class RegisterController extends Controller
             'email' => $data['email'],
             'password' => bcrypt($data['password']),
             'mobileNo' => $data['mobileNo'],
-            'activationHash' => str_random(40),
+            'activationHash' => $data['activationHash'],
         ]);
 
         if ($user->id) {
@@ -114,10 +117,23 @@ class RegisterController extends Controller
             return response()->json(['code' => 1, 'message' => 'Unknown mobile network.']);        
 
         $this->validator($request->all())->validate();
-
-        // $this->guard()->login($this->create($request->all()));
+        
+        $activationHash = str_random(40);
+        $request->request->add(['activationHash' => $activationHash]);
         $this->create($request->all());
 
+        $user = \App\User::where('email', $request->only('email'))->first();
+        if (!$user)
+            return response()->json(["code" => 1, "message" => "Email not found."]);
+
+        $user->notify(new Registration($activationHash));
+
+
         return response()->json(["code" => 0, "message" => "Registration successful."]);
+    }
+
+    public function emailConfirmation($hash) {
+        \App\User::where('activationHash', $hash)->update(['active' => 1]);
+        return response()->json(["code" => 0, "message" => "Email confirmation was successful."]);
     }
 }

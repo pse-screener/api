@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 
 use Illuminate\Support\Facades\DB;
 
-class lastPrices extends Controller
+class LastPrices extends Controller
 {
     /* Gets company price by companies. */
     public function getLastClosedPrices() {
