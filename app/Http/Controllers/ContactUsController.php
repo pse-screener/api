@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use \App\Mail\ContactUs;
 
 class ContactUsController extends Controller
 {
@@ -34,7 +36,14 @@ class ContactUsController extends Controller
      */
     public function store(Request $request)
     {
-        // this should send an email.
+        $issue['fName'] = $request->fName;
+        $issue['lName'] = $request->lName;
+        $issue['email'] = $request->email;
+        $issue['phoneNo'] = $request->phoneNo;
+        $issue['message'] = $request->message;
+
+        Mail::to(config('mail.from.address'))->send(new ContactUs($issue));
+
         return response()->json(['code'=> 0, 'message'=> 'Message successfully sent!']);
     }
 
