@@ -6,6 +6,7 @@ use App\User;
 use Validator;
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\RegistersUsers;
+use Carbon\Carbon;
 
 use Illuminate\Http\Request;
 
@@ -133,7 +134,7 @@ class RegisterController extends Controller
     }
 
     public function emailConfirmation($hash) {
-        \App\User::where('activationHash', $hash)->update(['active' => 1]);
+        \App\User::where('activationHash', $hash)->update(['activated' => 1, 'tsActivated' => Carbon::now()]);
         return response()->json(["code" => 0, "message" => "Email confirmation was successful."]);
     }
 }
