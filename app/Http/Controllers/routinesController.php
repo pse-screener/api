@@ -40,8 +40,22 @@ class routinesController extends Controller
             'alertAdministratorLoadStatus.php',
         );
 
+        $allowedFromScriptsOnHolidays = array(
+            'testSms.php',  // if you want to test SMS.
+            'artisan',  // used for to run "php artisan route:list"
+            
+            'alertAdministratorLoadStatus.php' // SMS load status
+        );
+
         if (!in_array(basename($_SERVER['SCRIPT_FILENAME']), $allowedFromScripts))
             exit("The script only runs if started from one of the command line scripts.\n");
+
+        // Check if today's holiday.
+        $holidays = DB::table('holidays')->select('theDate')->whereDate('theDate', DB::raw('CURDATE()'))->count();
+
+        if ($holidays)
+            if (!in_array(basename($_SERVER['SCRIPT_FILENAME']), $allowedFromScriptsOnHolidays))
+                exit("Only selected scripts are allowed to run on holidays.\n");
     }
 
     /* being ran every minute on weekdays; Will dump into json file. */
@@ -477,9 +491,9 @@ class routinesController extends Controller
     public function sendSmsMessages() {
         $sms = new Jsms\Sms;
         $sms->delayInSeconds = 6;
-        print "Set device: " . $sms->setDevice('/dev/ttyUSB2') . "\n";
+        print "Set device: " . $sms->setDevice(config('app.device_port')) . "\n";
         print "Open device: " . $sms->openDevice() . "\n";
-        print "Set baud rate: " . $sms->setBaudRate(115200) . "\n";
+        print "Set baud rate: " . $sms->setBaudRate(config('app.baud_rate')) . "\n";
         
         $records = DB::table('smsMessages')->select('id', 'alertId', 'recipient', 'message', 'status')->whereIn('status', ['draft', 'outbox'])->get();
 
@@ -576,9 +590,9 @@ class routinesController extends Controller
     public function testSms() {
         $sms = new Jsms\Sms;
         $sms->delayInSeconds = 6;
-        print "Set device: " . $sms->setDevice('/dev/ttyUSB2') . "\n";
+        print "Set device: " . $sms->setDevice(config('app.device_port')) . "\n";
         print "Open device: " . $sms->openDevice() . "\n";
-        print "Set baud rate: " . $sms->setBaudRate(115200) . "\n";
+        print "Set baud rate: " . $sms->setBaudRate(config('app.baud_rate')) . "\n";
         print "Sent message: " . $sms->sendSMS('09332162333', 'I miss you.') . "\n";
         $sms->sendCmd("ATi");
         print $sms->getDeviceResponse() . "\n";
