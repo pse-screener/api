@@ -481,7 +481,8 @@ class routinesController extends Controller
             }
 
             if ($priceCondition != "") {
-                $message = "PSE Alert!\n{$record->symbol} price has already reached $priceCondition your alert price of {$record->alertPrice}. Price as of {$record->asOf} is {$record->currentPrice}";
+                $message = "PSE Alert!\n{$record->symbol} price has already reached $priceCondition your alert price of {$record->alertPrice}. Price as of {$record->asOf} is {$record->currentPrice}. ";
+                $message .= "Visit http://pse-screener.ml to set another price alert.";
                 DB::table('smsMessages')->insert(['alertId' => $record->id, 'recipient' => $record->mobileNo, 'message'=> $message, 'status' => 'draft']);
             }
         }
