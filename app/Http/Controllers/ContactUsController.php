@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use \App\Mail\ContactUs;
+use GuzzleHttp\Client;
 
 class ContactUsController extends Controller
 {
@@ -28,6 +29,24 @@ class ContactUsController extends Controller
         //
     }
 
+    private function verifyRecaptcha($recaptchaString)
+    {
+        $secret = '6LfmBQcUAAAAAFlhY9BUcX9ugyO6uopV_6GtziKU';
+
+        $client = new Client();    
+        $response = $client->post('https://www.google.com/recaptcha/api/siteverify',
+            ['form_params'=>
+                [
+                    'secret'=> $secret,
+                    'response'=> $recaptchaString
+                 ]
+            ]
+        );
+    
+        $body = json_decode((string)$response->getBody());
+        return $body->success;
+    }
+
     /**
      * Store a newly created resource in storage.
      *
@@ -42,9 +61,12 @@ class ContactUsController extends Controller
         $issue['phoneNo'] = $request->phoneNo;
         $issue['message'] = $request->message;
 
-        Mail::to(config('mail.from.address'))->send(new ContactUs($issue));
-
-        return response()->json(['code'=> 0, 'message'=> 'Message successfully sent!']);
+        if ($this->verifyRecaptcha($request->{'g-recaptcha-response'})) {
+            Mail::to(config('mail.from.address'))->send(new ContactUs($issue));
+            return response()->json(['code'=> 0, 'message'=> 'Message successfully sent!']);
+        } else {
+            return response()->json(['code'=> 1, 'message'=> 'Invalid captcha.']);
+        }
     }
 
     /**
