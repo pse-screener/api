@@ -55,10 +55,11 @@ class SendFreeSmsController extends Controller
     public function store(Request $request)
     {
         if (strlen($request->phoneNo) != 11)
-            return response()->json(['code'=> 0, 'message'=> 'Invalid phone number. Please enter 11 digit number.']);
-
+            return response()->json(['code'=> 1, 'message'=> 'Invalid phone number. Please enter 11 digit number.']);
         if (strlen($request->message) < 1)
-            return response()->json(['code'=> 0, 'message'=> 'Message is empty.']);
+            return response()->json(['code'=> 1, 'message'=> 'Message is empty.']);
+        if (strlen($request->message) > 160)
+            return response()->json(['code'=> 1, 'message'=> 'Limit characters to 160 only.']);
 
         $mobilePrefix = substr($request->phoneNo, 0, 4);
         $telco = DB::table('telcos')->select('network')->where('mobilePrefix', $mobilePrefix)->first();
