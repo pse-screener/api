@@ -196,6 +196,7 @@ class AlertController extends Controller
             $alert->sentToSms = 0;
             $alert->sendSms = 1;
             $alert->sendEmail = 1;
+            $alert->touch();
 
             $alert->save();
 
