@@ -387,80 +387,85 @@ class routinesController extends Controller
         print "Open device: " . $sms->openDevice() . "\n";
         print "Set baud rate: " . $sms->setBaudRate(config('app.baud_rate')) . "\n";
         
-        $records = DB::table('smsMessages')->select('id', 'alertId', 'recipient', 'message', 'status')->whereIn('status', ['draft', 'outbox'])->get();
+        while (true) {
+            $records = DB::table('smsMessages')->select('id', 'alertId', 'recipient', 'message', 'status')->whereIn('status', ['draft', 'outbox'])->get();
 
-        $smsMessages = [];
-        foreach ($records as $record)
-            $smsMessages[] = ['id'=> $record->id, 'alertId' => $record->alertId, 'recipient' => $record->recipient, 'message' => $record->message, 'status' => $record->status];
+            $smsMessages = [];
+            foreach ($records as $record)
+                $smsMessages[] = ['id'=> $record->id, 'alertId' => $record->alertId, 'recipient' => $record->recipient, 'message' => $record->message, 'status' => $record->status];
 
-        foreach ($smsMessages as $smsMessage) {
-            $mobilePrefix = substr($smsMessage['recipient'], 0, 4);
-            $telco = DB::table('telcos')->select('network')->where('mobilePrefix', $mobilePrefix)->first();
+            foreach ($smsMessages as $smsMessage) {
+                $mobilePrefix = substr($smsMessage['recipient'], 0, 4);
+                $telco = DB::table('telcos')->select('network')->where('mobilePrefix', $mobilePrefix)->first();
 
-            if ($telco) {   // We do not send to unknown TelCo
-                $simCards = DB::table('simCards')->select('allowedToBeSent', 'allowedToSameNetwork', 'allowedToOtherNetwork', 'sentToSameNetwork', 'sentToOtherNetwork', 'sentMessages')->where('id', 1)->first();
+                if ($telco) {   // We do not send to unknown TelCo
+                    $simCards = DB::table('simCards')->select('allowedToBeSent', 'allowedToSameNetwork', 'allowedToOtherNetwork', 'sentToSameNetwork', 'sentToOtherNetwork', 'sentMessages')->where('id', 1)->first();
 
-                $consideredAsOtherNetwork = explode(',', config('app.considered_as_other_network'));
-                if (!in_array($telco->network, $consideredAsOtherNetwork) &&
-                    ($simCards->allowedToSameNetwork >= $simCards->sentToSameNetwork) &&
-                    ($simCards->allowedToBeSent >= $simCards->sentMessages)) { // meaning they're in the same network because I currently use TnT
-                    $allowedToSendMessage = true;
-                } elseif (in_array($telco->network, $consideredAsOtherNetwork) &&
-                    ($simCards->allowedToOtherNetwork >= $simCards->sentToOtherNetwork) &&
-                    ($simCards->allowedToBeSent >= $simCards->sentMessages)) { // meaning they're not in the same network because I currently use TnT
-                    $allowedToSendMessage = true;
-                } else {
-                    $allowedToSendMessage = false;
-                }
-
-                if ($allowedToSendMessage) {
-                    $sentMessage = $sms->sendSMS($smsMessage['recipient'], $smsMessage['message']);
-
-                    print "Message sent: $sentMessage\n";
-
-                    if ($sentMessage) {
-                        DB::beginTransaction();
-                            if ($smsMessage['alertId'])
-                                DB::table('alerts')->where('id', $smsMessage['alertId'])->update(['sentToSms' => 1]);
-
-                            DB::table('smsMessages')->where('id', $smsMessage['id'])->update(['status' => 'sent']);
-
-                            $simCards = DB::table('simCards')->where('id', 1);
-                            if (!in_array($telco->network, $consideredAsOtherNetwork))
-                                $simCards->increment('sentToSameNetwork');
-                            else
-                                $simCards->increment('sentToOtherNetwork');
-
-                            DB::table('simCards')->where('id', 1)->increment('sentMessages');
-
-                            switch ($telco->network) {
-                                case 'Smart':
-                                    $simCards->increment('sentToSmart');
-                                    break;
-                                case 'Tnt':
-                                    $simCards->increment('sentToTnt');
-                                    break;
-                                case 'Sun':
-                                    $simCards->increment('sentToSun');
-                                    break;
-                                case 'Globe':
-                                    $simCards->increment('sentToGlobe');
-                                    break;
-                                case 'Tm':
-                                    $simCards->increment('sentToTm');
-                                    break;
-                                default:
-                                    // make sure that network is known i.e., if you add new network in the telcos table, add column for it in order to be counted on every sms sent
-                                    break;
-                            }
-                        DB::commit();
+                    $consideredAsOtherNetwork = explode(',', config('app.considered_as_other_network'));
+                    if (!in_array($telco->network, $consideredAsOtherNetwork) &&
+                        ($simCards->allowedToSameNetwork >= $simCards->sentToSameNetwork) &&
+                        ($simCards->allowedToBeSent >= $simCards->sentMessages)) { // meaning they're in the same network because I currently use TnT
+                        $allowedToSendMessage = true;
+                    } elseif (in_array($telco->network, $consideredAsOtherNetwork) &&
+                        ($simCards->allowedToOtherNetwork >= $simCards->sentToOtherNetwork) &&
+                        ($simCards->allowedToBeSent >= $simCards->sentMessages)) { // meaning they're not in the same network because I currently use TnT
+                        $allowedToSendMessage = true;
                     } else {
-                        DB::table('smsMessages')->where('id', $smsMessage['id'])->update(['status' => 'outbox']);
+                        $allowedToSendMessage = false;
+                    }
+
+                    if ($allowedToSendMessage) {
+                        $sentMessage = $sms->sendSMS($smsMessage['recipient'], $smsMessage['message']);
+
+                        print "Message sent: $sentMessage\n";
+
+                        if ($sentMessage) {
+                            DB::beginTransaction();
+                                if ($smsMessage['alertId'])
+                                    DB::table('alerts')->where('id', $smsMessage['alertId'])->update(['sentToSms' => 1]);
+
+                                DB::table('smsMessages')->where('id', $smsMessage['id'])->update(['status' => 'sent']);
+
+                                $simCards = DB::table('simCards')->where('id', 1);
+                                if (!in_array($telco->network, $consideredAsOtherNetwork))
+                                    $simCards->increment('sentToSameNetwork');
+                                else
+                                    $simCards->increment('sentToOtherNetwork');
+
+                                DB::table('simCards')->where('id', 1)->increment('sentMessages');
+
+                                switch ($telco->network) {
+                                    case 'Smart':
+                                        $simCards->increment('sentToSmart');
+                                        break;
+                                    case 'Tnt':
+                                        $simCards->increment('sentToTnt');
+                                        break;
+                                    case 'Sun':
+                                        $simCards->increment('sentToSun');
+                                        break;
+                                    case 'Globe':
+                                        $simCards->increment('sentToGlobe');
+                                        break;
+                                    case 'Tm':
+                                        $simCards->increment('sentToTm');
+                                        break;
+                                    default:
+                                        // make sure that network is known i.e., if you add new network in the telcos table, add column for it in order to be counted on every sms sent
+                                        break;
+                                }
+                            DB::commit();
+                        } else {
+                            DB::table('smsMessages')->where('id', $smsMessage['id'])->update(['status' => 'outbox']);
+                        }
                     }
                 }
             }
+
+            sleep(60);
         }
 
+        // This is unreachable due to new implementation instead of running this with cron job.
         print "Device closed: " . $sms->closeDevice() . "\n";
     }
 
@@ -482,13 +487,14 @@ class routinesController extends Controller
         print "Device closed: " . $sms->closeDevice() . "\n"; 
     }
 
+    /* To run this stop running, ... routines/sendSmsMessages.php first. */
     public function testSms() {
         $sms = new Jsms\Sms;
         $sms->delayInSeconds = 6;
         print "Set device: " . $sms->setDevice(config('app.device_port')) . "\n";
         print "Open device: " . $sms->openDevice() . "\n";
         print "Set baud rate: " . $sms->setBaudRate(config('app.baud_rate')) . "\n";
-        print "Sent message: " . $sms->sendSMS('09332162333', 'I miss you.') . "\n";
+        print "Sent message: " . $sms->sendSMS('09332162333', 'I miss you more!!!') . "\n";
         $sms->sendCmd("ATi");
         print $sms->getDeviceResponse() . "\n";
         print "Device closed: " . $sms->closeDevice() . "\n"; 
