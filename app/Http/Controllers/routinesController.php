@@ -382,7 +382,7 @@ class routinesController extends Controller
     /* This will scan smsMessages table and send it to recipient. */
     public function sendSmsMessages() {
         $sms = new Jsms\Sms;
-        $sms->delayInSeconds = 6;
+        $sms->delayInSeconds = 10;  // so far setting to 10 doesn't have an issue with the modem.
         print "Set device: " . $sms->setDevice(config('app.device_port')) . "\n";
         print "Open device: " . $sms->openDevice() . "\n";
         print "Set baud rate: " . $sms->setBaudRate(config('app.baud_rate')) . "\n";
@@ -417,7 +417,7 @@ class routinesController extends Controller
                     if ($allowedToSendMessage) {
                         $sentMessage = $sms->sendSMS($smsMessage['recipient'], $smsMessage['message']);
 
-                        print "Message sent: $sentMessage\n";
+                        print "Message sent: ${sentMessage}; id: ${smsMessage['id']} \n";
 
                         if ($sentMessage) {
                             DB::beginTransaction();
@@ -462,7 +462,7 @@ class routinesController extends Controller
                 }
             }
 
-            sleep(60);
+            sleep(30);
         }
 
         // This is unreachable due to new implementation instead of running this with cron job.
