@@ -373,13 +373,13 @@ class routinesController extends Controller
 
             if ($priceCondition != "") {
                 $message = "PSE Alert!\n{$record->symbol} price has already reached $priceCondition your alert price {$record->alertPrice}. As of {$record->asOf} is {$record->currentPrice}.\n";
-                $message .= "Visit http://pse-screener.ml to set another alert.";
+                $message .= "Visit http://pse-screener.sytes.net to set another alert.";
                 DB::table('smsMessages')->insert(['alertId' => $record->id, 'recipient' => $record->mobileNo, 'message'=> $message]);
             }
         }
     }
 
-    /* This will scan smsMessages table and send it to recipient. */
+    /* All outgoing SMS messages should be sent by this; This will scan smsMessages table and send it to recipient. */
     public function sendSmsMessages() {
         $sms = new Jsms\Sms;
         $sms->delayInSeconds = 10;  // so far setting to 10 doesn't have an issue with the modem.
@@ -473,18 +473,7 @@ class routinesController extends Controller
     /* To be implemented soon: Instead of sending SMS on its own, give it to $this->sendSmsMessages(). */
     public function alertAdministratorLoadStatus() {
         $status = DB::select('CALL sp_getSmsLoadStatus()')[0];
-
-        $sms = new Jsms\Sms;
-        $sms->delayInSeconds = 6;
-        print "Set device: " . $sms->setDevice(config('app.device_port')) . "\n";
-        print "Open device: " . $sms->openDevice() . "\n";
-        print "Set baud rate: " . $sms->setBaudRate(115200) . "\n";
-        $sentMessage = $sms->sendSMS('09332162333', "PSE Alert!\nSMS unli is about to expire on {$status->dateLoadExpiry} or other network bal is less than or equal to 10.");
-        if ($sentMessage)
-            print "Message sent!\n";
-        else
-            print "Message Not sent!\n";
-        print "Device closed: " . $sms->closeDevice() . "\n"; 
+        DB::table('smsMessage')->insert(['recipient' => '09065165124', 'message' => "PSE Alert!\nSMS unli is about to expire on {$status->dateLoadExpiry} or other network bal is less than or equal to 10."]);
     }
 
     /* To run this stop running, ... routines/sendSmsMessages.php first. */
