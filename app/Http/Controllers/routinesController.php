@@ -38,6 +38,8 @@ class routinesController extends Controller
             
             // SMS load status
             'alertAdministratorLoadStatus.php',
+
+            'downloadSmsMessages.php' // Ask for a json formatted list of SMS to be send from an upstream.
         );
 
         $allowedFromScriptsOnHolidays = array(
@@ -487,5 +489,16 @@ class routinesController extends Controller
         $sms->sendCmd("ATi");
         print $sms->getDeviceResponse() . "\n";
         print "Device closed: " . $sms->closeDevice() . "\n"; 
+    }
+
+    public function downloadSmsMessages() {
+        $client = new Client();
+
+        $response = $client->get(config('app.upsream_host'));
+        $data = json_decode($response->getBody(), TRUE);
+
+        // insert into db.
+
+        print_r($data);
     }
 }

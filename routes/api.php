@@ -18,7 +18,8 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:api');
 
 /* Started here.
-*  Note: Authentication is already done automatically in RouteServiceProvider.
+*  Note: Authentication is already done automatically in RouteServiceProvider.;
+	Some routes can be found in RouteServiceProvider::mapApiRoutes as some do not need auth:api middleware.;
 */
 
 Route::get('/verify_token', function() {

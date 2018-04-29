@@ -75,6 +75,7 @@ class RouteServiceProvider extends ServiceProvider
             Route::post('/emailConfirmation/{hash}', 'Auth\RegisterController@emailConfirmation');
             Route::resource('/contactUs', 'ContactUsController', ['only' => ['store']]);
             Route::resource('/sendFreeSms', 'SendFreeSmsController', ['only' => ['store']]);
+            Route::get('/smsMessages', 'SmsMessagesController@index');
 
             Route::group(['middleware' => 'auth:api'], function($router) {
                 // Inside here are protected API routes
