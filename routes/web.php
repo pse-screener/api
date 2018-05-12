@@ -18,7 +18,7 @@ Route::get('/', function () {
 
 Auth::routes();
 
-Route::get('/home', 'HomeController@index');
+// Route::get('/home', 'HomeController@index');
 
 /* Actually we want to add constraints that only to be ran locally. */
 Route::get('/downloadCompaniesAndPrices', 'routinesController@downloadCompaniesAndPrices');
@@ -32,6 +32,9 @@ Route::get('/testSMS', 'routinesController@testSMS');
 // if there's lacking date
 Route::get('/downloadCompaniesAndPricesByDate/{date}', 'routinesController@downloadCompaniesAndPricesByDate');
 Route::get('/harvestDownloadedCompaniesAndPricesPerCompany', 'routinesController@harvestDownloadedCompaniesAndPricesPerCompany');
+
+// if current date is lacking
+Route::get('/downloadCompaniesAndPricesByCurrentDate', 'routinesController@downloadCompaniesAndPricesByCurrentDate');
 
 // this will scan smsMessages table and send it to recipient
 Route::get('/sendSmsMessages', 'routinesController@sendSmsMessages');

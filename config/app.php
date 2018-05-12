@@ -12,7 +12,7 @@ return [
     | any other location as required by the application or its packages.
     */
 
-    'name' => 'PSE Alert',
+    'name' => 'PSE Screener',
 
     /*
     |--------------------------------------------------------------------------
@@ -231,4 +231,9 @@ return [
 
     'download_raw_data_beyond_trading_window' => env('DOWNLOAD_RAW_DATA_BEYONG_TRADING_WINDOW', false),
     'considered_as_other_network' => env('CONSIDERED_AS_OTHER_NETWORK', 'GLOBE,TM'),
+    // Something to do with the GSM modem.
+    'device_port' => env('DEVICE_PORT', '/dev/ttyUSB1'),
+    'baud_rate' => env('BAUD_RATE', 115200),
+
+    'upstream_host' => env('UPSTREAM_HOST', 'http://localhost'),
 ];

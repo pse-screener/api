@@ -23,7 +23,7 @@ class routinesController extends Controller
             'harvestDownloadedCompaniesAndPrices.php',
             'materializeRawDataPerMinute.php',
             'materializeForPerCompanyPerTradingDay.php',
-            'sendDailyAlertsToSubscribers.php',
+            'sendDailyAlertsToSubscribers.php', // 
             'testSms.php',  // if you want to test SMS.
             'artisan',  // used for to run "php artisan route:list"
 
@@ -31,19 +31,38 @@ class routinesController extends Controller
             'downloadCompaniesAndPricesByDate.php',
             'harvestDownloadedCompaniesAndPricesPerCompany.php',
 
+            /* If current date is missing. */
+            'downloadCompaniesAndPricesByCurrentDate.php',
+
             'sendSmsMessages.php',
             
             // SMS load status
             'alertAdministratorLoadStatus.php',
+
+            'downloadSmsMessages.php' // Ask for a json formatted list of SMS to be send from an upstream.
+        );
+
+        $allowedFromScriptsOnHolidays = array(
+            'testSms.php',  // if you want to test SMS.
+            'artisan',  // used for to run "php artisan route:list"
+            
+            'alertAdministratorLoadStatus.php' // SMS load status
         );
 
         if (!in_array(basename($_SERVER['SCRIPT_FILENAME']), $allowedFromScripts))
             exit("The script only runs if started from one of the command line scripts.\n");
+
+        // Check if today's holiday.
+        $holidays = DB::table('holidays')->select('theDate')->whereDate('theDate', DB::raw('CURDATE()'))->count();
+
+        if ($holidays)
+            if (!in_array(basename($_SERVER['SCRIPT_FILENAME']), $allowedFromScriptsOnHolidays))
+                exit("Only selected scripts are allowed to run on holidays.\n");
     }
 
     /* being ran every minute on weekdays; Will dump into json file. */
     public function downloadCompaniesAndPrices() {
-    	if (!config('app.download_raw_data_beyond_trading_window')) {
+    	/*if (!config('app.download_raw_data_beyond_trading_window')) {
     		if (date("N") > 5) {
     			exit("Environment doesn't allow download raw data beyong trading hours.\n");
     		}
@@ -58,7 +77,7 @@ class routinesController extends Controller
     		if (!($currentDateTime >= $am_trade_start && $currentDateTime <= $am_trade_end) || !($currentDateTime >= $pm_trade_start && $currentDateTime <= $pm_trade_end)) {
     			exit("Environment doesn't allow download raw data beyong trading hours.\n");
     		}
-    	}
+    	}*/
 
     	$client = new Client();
 
@@ -83,11 +102,12 @@ class routinesController extends Controller
         print "Success!\n";
     }
 
-    /* being ran as needed. Will dump into json file. No restriction on when to run.
+    /* Run as needed. Will dump into json file. No restriction on when to run.
         I created this one because I noticed upstream data doesn't include index percent_change.
         After running this, run
         1. $this->harvestDownloadedCompaniesAndPricesPerCompany().
-        2. $this->materializeForPerCompanyPerTradingDay().
+        2. $this->materializeRawDataPerMinute();
+        3. $this->materializeForPerCompanyPerTradingDay().
     */
     public function downloadCompaniesAndPricesByDate($date = NULL) {
         if ($date == NULL)
@@ -130,6 +150,43 @@ class routinesController extends Controller
             $formatedTime = preg_replace($pattern, $replacement, $asOfTimeOnly);
             file_put_contents("/var/log/pse_monitor/raw_data/perCompany/{$symbol->symbol}_{$asOfDateOnly}T{$formatedTime}.json", json_encode($data));
         }
+
+        print "Success!\n";
+    }
+
+    /* Run if you want current date. Will dump into json file. No restriction on when to run.
+        I realized running $this->downloadCompaniesAndPricesByDate() can miss a company because it iterate from DB result. So if there are new, it won't get the data.
+        After running this, run
+        1. $this->harvestDownloadedCompaniesAndPrices().
+        2. $this->materializeRawDataPerMinute.php
+        3. $this->materializeForPerCompanyPerTradingDay().
+    */
+    public function downloadCompaniesAndPricesByCurrentDate() {
+        try {
+            $client = new Client();
+            $response = $client->get("http://phisix-api.appspot.com/stocks.json");
+        } catch(RequestException  $e) {
+            echo Psr7\str($e->getRequest());
+            if ($e->hasResponse())
+                echo Psr7\str($e->getResponse());
+        }
+
+        $data = json_decode($response->getBody(), TRUE);
+
+        if (!isset($data['as_of']))
+            exit("No data in upstream.\n");
+
+        $asOf = $data['as_of'];
+        preg_match("/(\d{4}-\d{2}-\d{2})/", $asOf, $match);
+        $asOfDateOnly = $match[0];
+        preg_match("/(\d{2}:\d{2}:\d{2})/", $asOf, $match);
+        $asOfTimeOnly = $match[0];
+
+        // now we want replace ":" to "_"
+        $pattern = '/:/';
+        $replacement = '_';
+        $formatedTime = preg_replace($pattern, $replacement, $asOfTimeOnly);
+        file_put_contents("/var/log/pse_monitor/raw_data/{$asOfDateOnly}T{$formatedTime}.json", json_encode($data));
 
         print "Success!\n";
     }
@@ -288,114 +345,6 @@ class routinesController extends Controller
     	DB::statement("call sp_perform_eod()");
     }
 
-    public function sendDailyAlertsToSubscribers2() {
-        $sql = "SELECT alerts.id, companies.symbol, alerts.priceCondition, alerts.price alertPrice, MPCD.price currentPrice, MPCD.asOf, users.mobileNo
-                FROM alerts JOIN materialize_per_company_daily MPCD ON alerts.companyId = MPCD.companyId
-                    JOIN companies ON alerts.companyId = companies.id
-                    JOIN subscriptions ON subscriptions.id = alerts.subscriptionId
-                    JOIN users ON users.id = subscriptions.userId
-                WHERE DATE_FORMAT(alerts.updated_at, '%Y-%m-%d') <= DATE_FORMAT(MPCD.asOf, '%Y-%m-%d')
-                    AND sentToSms = 0
-                    AND alerts.updated_at < NOW()
-                    AND DATE_FORMAT(MPCD.asOf, '%Y-%m-%d') = DATE_FORMAT(NOW(), '%Y-%m-%d')
-                    AND users.active = 1";
-
-        $records = DB::select($sql);
-
-        $sms = new Jsms\Sms;
-        $sms->delayInSeconds = 6;
-        print "Set device: " . $sms->setDevice('/dev/ttyUSB2') . "\n";
-        print "Open device: " . $sms->openDevice() . "\n";
-        print "Set baud rate: " . $sms->setBaudRate(115200) . "\n";
-
-        foreach ($records as $record) {
-            $priceCondition = "";
-
-            if ($record->priceCondition == 'movesAbove') {
-                if ($record->alertPrice < $record->currentPrice) {
-                    $priceCondition = "above";
-                }
-            } elseif ($record->priceCondition == 'movesBelow') {
-                if ($record->alertPrice > $record->currentPrice) {
-                    $priceCondition = "below";
-                }
-            }
-
-            if ($priceCondition != "") {
-                $mobilePrefix = substr($record->mobileNo, 0, 4);
-                $telco = DB::table('telcos')->select('network')->where('mobilePrefix', $mobilePrefix)->first();
-
-                if ($telco) {
-                    $simCards = DB::table('simCards')->select('allowedToBeSent', 'allowedToSameNetwork', 'allowedToOtherNetwork', 'sentToSameNetwork', 'sentToOtherNetwork', 'sentMessages')->where('id', 1)->first();
-
-                    $consideredAsOtherNetwork = explode(',', config('app.considered_as_other_network'));
-                    if (!in_array($telco->network, $consideredAsOtherNetwork) &&
-                        ($simCards->allowedToSameNetwork >= $simCards->sentToSameNetwork) &&
-                        ($simCards->allowedToBeSent >= $simCards->sentMessages)) { // meaning they're in the same network because I currently use TnT
-                        $allowedToSendMessage = true;
-                    } elseif (in_array($telco->network, $consideredAsOtherNetwork) &&
-                        ($simCards->allowedToOtherNetwork >= $simCards->sentToOtherNetwork) &&
-                        ($simCards->allowedToBeSent >= $simCards->sentMessages)) { // meaning they're not in the same network because I currently use TnT
-                        $allowedToSendMessage = true;
-                    } else {
-                        $allowedToSendMessage = false;
-                    }
-
-                    if ($allowedToSendMessage) {
-                        $msg = "PSE Alert: {$record->symbol} price has already reached $priceCondition your alert price of {$record->alertPrice}. Price as of {$record->asOf} is {$record->currentPrice}";
-                        $sentMessage = $sms->sendSMS($record->mobileNo, $msg);
-
-                        if ($sentMessage) {
-                            print "Message sent!\n";
-
-                            DB::beginTransaction();
-                                DB::table('alerts')->where('id', $record->id)->update(['sentToSms' => 1]);
-
-                                $simCards = DB::table('simCards')->where('id', 1);
-                                if (!in_array($telco->network, $consideredAsOtherNetwork))
-                                    $simCards->increment('sentToSameNetwork');
-                                else
-                                    $simCards->increment('sentToOtherNetwork');
-
-                                DB::table('simCards')->where('id', 1)->increment('sentMessages');
-
-                                $simCards = DB::table('simCards')->where('id', 1);
-
-                                switch ($telco->network) {
-                                    case 'Smart':
-                                        $simCards->increment('sentToSmart');
-                                        break;
-                                    case 'Tnt':
-                                        $simCards->increment('sentToTnt');
-                                        break;
-                                    case 'Sun':
-                                        $simCards->increment('sentToSun');
-                                        break;
-                                    case 'Globe':
-                                        $simCards->increment('sentToGlobe');
-                                        break;
-                                    case 'Tm':
-                                        $simCards->increment('sentToTm');
-                                        break;
-                                    default:
-                                        // make sure that network known i.e., if you add new network in the telcos table, add column for it in order to be counted on every sms sent
-                                        break;
-                                }
-                            DB::commit();
-                        } else {
-                            print "\"$msg\"\nNOT sent!\n";
-                        }
-                    } else {
-                        print "Message Not allowed to send.\n";
-                    }
-                } else {
-                    print "Unknown network.\n";
-                }
-            }
-        }
-        print "Device closed: " . $sms->closeDevice() . "\n";
-    }
-
     /* Intended to run at the end of the trading day. */
     public function sendDailyAlertsToSubscribers() {
         $sql = "SELECT alerts.id, companies.symbol, alerts.priceCondition, alerts.price alertPrice, MPCD.price currentPrice, MPCD.asOf, users.mobileNo
@@ -425,91 +374,100 @@ class routinesController extends Controller
             }
 
             if ($priceCondition != "") {
-                $message = "PSE Alert!\n{$record->symbol} price has already reached $priceCondition your alert price of {$record->alertPrice}. Price as of {$record->asOf} is {$record->currentPrice}";
-                DB::table('smsMessages')->insert(['alertId' => $record->id, 'recipient' => $record->mobileNo, 'message'=> $message, 'status' => 'draft']);
+                $message = "PSE Alert!\n{$record->symbol} price has already reached $priceCondition your alert price {$record->alertPrice}. As of {$record->asOf} is {$record->currentPrice}.\n";
+                $message .= "Visit http://pse-screener.sytes.net to set another alert.";
+                DB::table('smsMessages')->insert(['alertId' => $record->id, 'recipient' => $record->mobileNo, 'message'=> $message]);
             }
         }
     }
 
-    /* This will scan smsMessages table and send it to recipient. */
+    /* All outgoing SMS messages should be sent by this; This will scan smsMessages table and send it to recipient. */
     public function sendSmsMessages() {
         $sms = new Jsms\Sms;
-        $sms->delayInSeconds = 6;
-        print "Set device: " . $sms->setDevice('/dev/ttyUSB2') . "\n";
+        $sms->delayInSeconds = 10;  // so far setting to 10 doesn't have an issue with the modem.
+        print "Set device: " . $sms->setDevice(config('app.device_port')) . "\n";
         print "Open device: " . $sms->openDevice() . "\n";
-        print "Set baud rate: " . $sms->setBaudRate(115200) . "\n";
+        print "Set baud rate: " . $sms->setBaudRate(config('app.baud_rate')) . "\n";
         
-        $records = DB::table('smsMessages')->select('id', 'alertId', 'recipient', 'message', 'status')->whereIn('status', ['draft', 'outbox'])->get();
+        while (true) {
+            $records = DB::table('smsMessages')->select('id', 'alertId', 'recipient', 'message', 'status')->whereIn('status', ['draft', 'outbox'])->get();
 
-        $smsMessages = [];
-        foreach ($records as $record)
-            $smsMessages[] = ['id'=> $record->id, 'alertId' => $record->alertId, 'recipient' => $record->recipient, 'message' => $record->message, 'status' => $record->status];
+            $smsMessages = [];
+            foreach ($records as $record)
+                $smsMessages[] = ['id'=> $record->id, 'alertId' => $record->alertId, 'recipient' => $record->recipient, 'message' => $record->message, 'status' => $record->status];
 
-        foreach ($smsMessages as $smsMessage) {
-            $mobilePrefix = substr($smsMessage->recipient, 0, 4);
-            $telco = DB::table('telcos')->select('network')->where('mobilePrefix', $mobilePrefix)->first();
+            foreach ($smsMessages as $smsMessage) {
+                $mobilePrefix = substr($smsMessage['recipient'], 0, 4);
+                $telco = DB::table('telcos')->select('network')->where('mobilePrefix', $mobilePrefix)->first();
 
-            if ($telco) {
-                $simCards = DB::table('simCards')->select('allowedToBeSent', 'allowedToSameNetwork', 'allowedToOtherNetwork', 'sentToSameNetwork', 'sentToOtherNetwork', 'sentMessages')->where('id', 1)->first();
+                if ($telco) {   // We do not send to unknown TelCo
+                    $simCards = DB::table('simCards')->select('allowedToBeSent', 'allowedToSameNetwork', 'allowedToOtherNetwork', 'sentToSameNetwork', 'sentToOtherNetwork', 'sentMessages')->where('id', 1)->first();
 
-                $consideredAsOtherNetwork = explode(',', config('app.considered_as_other_network'));
-                if (!in_array($telco->network, $consideredAsOtherNetwork) &&
-                    ($simCards->allowedToSameNetwork >= $simCards->sentToSameNetwork) &&
-                    ($simCards->allowedToBeSent >= $simCards->sentMessages)) { // meaning they're in the same network because I currently use TnT
-                    $allowedToSendMessage = true;
-                } elseif (in_array($telco->network, $consideredAsOtherNetwork) &&
-                    ($simCards->allowedToOtherNetwork >= $simCards->sentToOtherNetwork) &&
-                    ($simCards->allowedToBeSent >= $simCards->sentMessages)) { // meaning they're not in the same network because I currently use TnT
-                    $allowedToSendMessage = true;
-                } else {
-                    $allowedToSendMessage = false;
-                }
-
-                if ($allowedToSendMessage) {
-                    $sentMessage = $sms->sendSMS($smsMessage->recipient, $smsMessage->message);
-
-                    if ($sentMessage) {
-                        DB::beginTransaction();
-                            if ($smsMessage->alertId)
-                                DB::table('alerts')->where('id', $smsMessage->alertId)->update(['sentToSms' => 1]);
-
-                            $simCards = DB::table('simCards')->where('id', 1);
-                            if (!in_array($telco->network, $consideredAsOtherNetwork))
-                                $simCards->increment('sentToSameNetwork');
-                            else
-                                $simCards->increment('sentToOtherNetwork');
-
-                            DB::table('simCards')->where('id', 1)->increment('sentMessages');
-
-                            switch ($telco->network) {
-                                case 'Smart':
-                                    $simCards->increment('sentToSmart');
-                                    break;
-                                case 'Tnt':
-                                    $simCards->increment('sentToTnt');
-                                    break;
-                                case 'Sun':
-                                    $simCards->increment('sentToSun');
-                                    break;
-                                case 'Globe':
-                                    $simCards->increment('sentToGlobe');
-                                    break;
-                                case 'Tm':
-                                    $simCards->increment('sentToTm');
-                                    break;
-                                default:
-                                    // make sure that network is known i.e., if you add new network in the telcos table, add column for it in order to be counted on every sms sent
-                                    break;
-                            }
-                        DB::commit();
+                    $consideredAsOtherNetwork = explode(',', config('app.considered_as_other_network'));
+                    if (!in_array($telco->network, $consideredAsOtherNetwork) &&
+                        ($simCards->allowedToSameNetwork >= $simCards->sentToSameNetwork) &&
+                        ($simCards->allowedToBeSent >= $simCards->sentMessages)) { // meaning they're in the same network because I currently use TnT
+                        $allowedToSendMessage = true;
+                    } elseif (in_array($telco->network, $consideredAsOtherNetwork) &&
+                        ($simCards->allowedToOtherNetwork >= $simCards->sentToOtherNetwork) &&
+                        ($simCards->allowedToBeSent >= $simCards->sentMessages)) { // meaning they're not in the same network because I currently use TnT
+                        $allowedToSendMessage = true;
                     } else {
-                        if ($smsMessage->status != 'outbox')
+                        $allowedToSendMessage = false;
+                    }
+
+                    if ($allowedToSendMessage) {
+                        $sentMessage = $sms->sendSMS($smsMessage['recipient'], $smsMessage['message']);
+
+                        print "Message sent: ${sentMessage}; id: ${smsMessage['id']} \n";
+
+                        if ($sentMessage) {
+                            DB::beginTransaction();
+                                if ($smsMessage['alertId'])
+                                    DB::table('alerts')->where('id', $smsMessage['alertId'])->update(['sentToSms' => 1]);
+
+                                DB::table('smsMessages')->where('id', $smsMessage['id'])->update(['status' => 'sent']);
+
+                                $simCards = DB::table('simCards')->where('id', 1);
+                                if (!in_array($telco->network, $consideredAsOtherNetwork))
+                                    $simCards->increment('sentToSameNetwork');
+                                else
+                                    $simCards->increment('sentToOtherNetwork');
+
+                                DB::table('simCards')->where('id', 1)->increment('sentMessages');
+
+                                switch ($telco->network) {
+                                    case 'Smart':
+                                        $simCards->increment('sentToSmart');
+                                        break;
+                                    case 'Tnt':
+                                        $simCards->increment('sentToTnt');
+                                        break;
+                                    case 'Sun':
+                                        $simCards->increment('sentToSun');
+                                        break;
+                                    case 'Globe':
+                                        $simCards->increment('sentToGlobe');
+                                        break;
+                                    case 'Tm':
+                                        $simCards->increment('sentToTm');
+                                        break;
+                                    default:
+                                        // make sure that network is known i.e., if you add new network in the telcos table, add column for it in order to be counted on every sms sent
+                                        break;
+                                }
+                            DB::commit();
+                        } else {
                             DB::table('smsMessages')->where('id', $smsMessage['id'])->update(['status' => 'outbox']);
+                        }
                     }
                 }
             }
+
+            sleep(30);
         }
 
+        // This is unreachable due to new implementation instead of running this with cron job.
         print "Device closed: " . $sms->closeDevice() . "\n";
     }
 
@@ -517,29 +475,30 @@ class routinesController extends Controller
     /* To be implemented soon: Instead of sending SMS on its own, give it to $this->sendSmsMessages(). */
     public function alertAdministratorLoadStatus() {
         $status = DB::select('CALL sp_getSmsLoadStatus()')[0];
-
-        $sms = new Jsms\Sms;
-        $sms->delayInSeconds = 6;
-        print "Set device: " . $sms->setDevice('/dev/ttyUSB2') . "\n";
-        print "Open device: " . $sms->openDevice() . "\n";
-        print "Set baud rate: " . $sms->setBaudRate(115200) . "\n";
-        $sentMessage = $sms->sendSMS('09332162333', "PSE Alert!\nSMS unli is about to expire on {$status->dateLoadExpiry} or other network bal is less than or equal to 10.");
-        if ($sentMessage)
-            print "Message sent!\n";
-        else
-            print "Message Not sent!\n";
-        print "Device closed: " . $sms->closeDevice() . "\n"; 
+        DB::table('smsMessage')->insert(['recipient' => '09065165124', 'message' => "PSE Alert!\nSMS unli is about to expire on {$status->dateLoadExpiry} or other network bal is less than or equal to 10."]);
     }
 
+    /* To run this stop running, ... routines/sendSmsMessages.php first. */
     public function testSms() {
         $sms = new Jsms\Sms;
         $sms->delayInSeconds = 6;
-        print "Set device: " . $sms->setDevice('/dev/ttyUSB2') . "\n";
+        print "Set device: " . $sms->setDevice(config('app.device_port')) . "\n";
         print "Open device: " . $sms->openDevice() . "\n";
-        print "Set baud rate: " . $sms->setBaudRate(115200) . "\n";
-        print "Sent message: " . $sms->sendSMS('09332162333', 'I miss you.') . "\n";
+        print "Set baud rate: " . $sms->setBaudRate(config('app.baud_rate')) . "\n";
+        print "Sent message: " . $sms->sendSMS('09332162333', 'I miss you more!!!') . "\n";
         $sms->sendCmd("ATi");
         print $sms->getDeviceResponse() . "\n";
         print "Device closed: " . $sms->closeDevice() . "\n"; 
+    }
+
+    public function downloadSmsMessages() {
+        $client = new Client();
+
+        $response = $client->get(config('app.upsream_host'));
+        $data = json_decode($response->getBody(), TRUE);
+
+        // insert into db.
+
+        print_r($data);
     }
 }

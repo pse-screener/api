@@ -6,8 +6,13 @@ use App\User;
 use Validator;
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\RegistersUsers;
+use Carbon\Carbon;
+use GuzzleHttp\Client;
 
 use Illuminate\Http\Request;
+
+use Illuminate\Auth\Passwords\PasswordBroker;
+use App\Notifications\Registration;
 
 class RegisterController extends Controller
 {
@@ -56,6 +61,7 @@ class RegisterController extends Controller
             'email' => 'required|email|max:100|unique:users',
             'password' => 'required|min:6|confirmed',
             'mobileNo' => 'required|min:11|max:11|unique:users',
+            'g-recaptcha-response' => 'required'
         ]);
     }
 
@@ -76,7 +82,7 @@ class RegisterController extends Controller
             'email' => $data['email'],
             'password' => bcrypt($data['password']),
             'mobileNo' => $data['mobileNo'],
-            'activationHash' => str_random(40),
+            'activationHash' => $data['activationHash'],
         ]);
 
         if ($user->id) {
@@ -99,11 +105,22 @@ class RegisterController extends Controller
     /* POST these to https://www.google.com/recaptcha/api/siteverify
        https://developers.google.com/recaptcha/docs/verify
     */
-    private function checkRecaptcha(array $data)
+    private function verifyRecaptcha($recaptchaString)
     {
         $secret = '6LfmBQcUAAAAAFlhY9BUcX9ugyO6uopV_6GtziKU';
-        $response = $data['g-recaptcha-response'];
-        $remoteip = $data['$remoteip'];
+
+        $client = new Client();    
+        $response = $client->post('https://www.google.com/recaptcha/api/siteverify',
+            ['form_params'=>
+                [
+                    'secret'=> $secret,
+                    'response'=> $recaptchaString
+                 ]
+            ]
+        );
+    
+        $body = json_decode((string)$response->getBody());
+        return $body->success;
     }
 
     public function register(Request $request)
@@ -115,9 +132,19 @@ class RegisterController extends Controller
 
         $this->validator($request->all())->validate();
 
-        // $this->guard()->login($this->create($request->all()));
-        $this->create($request->all());
+        if (!$this->verifyRecaptcha($request->{'g-recaptcha-response'}))
+            return response()->json(["code" => 1, "message" => "Registration unsuccessful."]);
+        
+        $activationHash = str_random(40);
+        $request->request->add(['activationHash' => $activationHash]);
+        $user = $this->create($request->all());
+        $user->notify(new Registration($activationHash));
 
         return response()->json(["code" => 0, "message" => "Registration successful."]);
+    }
+
+    public function emailConfirmation($hash) {
+        \App\User::where('activationHash', $hash)->update(['activated' => 1, 'tsActivated' => Carbon::now()]);
+        return response()->json(["code" => 0, "message" => "Email confirmation was successful."]);
     }
 }

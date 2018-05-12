@@ -39,7 +39,7 @@ class AlertController extends Controller
         $request["price"] = str_replace(',', '' , $request->price); // remove commas on price.
 
         $this->validate($request, [
-            'companyId' => 'bail|required|max:3',
+            'companyId' => 'bail|required',
             'priceCondition' => 'required|in:MA,MB',
             'price' => 'required|numeric',
         ]);
@@ -196,6 +196,7 @@ class AlertController extends Controller
             $alert->sentToSms = 0;
             $alert->sendSms = 1;
             $alert->sendEmail = 1;
+            $alert->touch();
 
             $alert->save();
 
