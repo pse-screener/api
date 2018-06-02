@@ -14,7 +14,6 @@ class SmsMessagesController extends Controller
      */
     public function index()
     {
-        // $records = DB::table('smsMessages')->select('id', 'alertId', 'recipient', 'message', 'status')->whereIn('status', ['draft', 'outbox'])->get();
         $smsMessages = \App\SmsMessage::whereIn('status', ['draft', 'outbox'])->get();
         return response()->json($smsMessages);
     }
