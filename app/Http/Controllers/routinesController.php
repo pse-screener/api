@@ -375,7 +375,7 @@ class routinesController extends Controller
 
             if ($priceCondition != "") {
                 $message = "PSE Alert!\n{$record->symbol} price has already reached $priceCondition your alert price {$record->alertPrice}. As of {$record->asOf} is {$record->currentPrice}.\n";
-                $message .= "Visit http://pse-screener.sytes.net to set another alert.";
+                $message .= "Visit " . config('app.url') . " to set another alert.";
                 DB::table('smsMessages')->insert(['alertId' => $record->id, 'recipient' => $record->mobileNo, 'message'=> $message]);
             }
         }
@@ -491,13 +491,18 @@ class routinesController extends Controller
         print "Device closed: " . $sms->closeDevice() . "\n"; 
     }
 
+    /**
+     * This is will send HTTP Get post to the upstream to get the SMS messages because the actually texting is localized
+     * already because AWS cannot be attached with a modem.
+     * @return void
+     */
     public function downloadSmsMessages() {
         $client = new Client();
 
         $response = $client->get(config('app.upsream_host'));
         $data = json_decode($response->getBody(), TRUE);
 
-        // insert into db.
+        // To be implemented: insert into db.
 
         print_r($data);
     }

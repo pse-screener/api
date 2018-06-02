@@ -54,6 +54,8 @@ class SendFreeSmsController extends Controller
      */
     public function store(Request $request)
     {
+        if (!config('app.allow_sms'))
+            return response()->json(['code'=> 1, 'message'=> 'SMS messaging is currently not allowed. Please try again later.']);
         if (strlen($request->phoneNo) != 11)
             return response()->json(['code'=> 1, 'message'=> 'Invalid phone number. Please enter 11 digit number.']);
         if (strlen($request->message) < 1)
