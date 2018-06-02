@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\SmsMessage;
+use Illuminate\Support\Facades\DB;
 
 class SmsMessagesController extends Controller
 {
@@ -14,7 +15,20 @@ class SmsMessagesController extends Controller
      */
     public function index()
     {
-        $smsMessages = \App\SmsMessage::whereIn('status', ['draft', 'outbox'])->get();
+        $records = \App\SmsMessage::whereIn('status', ['draft', 'outbox'])->get();
+        $smsMessages = [];
+        foreach ($records as $record)
+            $smsMessages[] = ['id'=> $record->id, 'alertId' => $record->alertId, 'recipient' => $record->recipient, 'message' => $record->message, 'status' => $record->status];
+
+        foreach ($smsMessages as $smsMessage) {
+            DB::beginTransaction();
+                if ($smsMessage['alertId'])
+                    DB::table('alerts')->where('id', $smsMessage['alertId'])->update(['sentToSms' => 1]);
+
+                DB::table('smsMessages')->where('id', $smsMessage['id'])->update(['status' => 'sent']);
+            DB::commit();
+        }
+
         return response()->json($smsMessages);
     }
 
