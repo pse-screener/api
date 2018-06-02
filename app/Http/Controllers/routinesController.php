@@ -492,18 +492,16 @@ class routinesController extends Controller
     }
 
     /**
-     * This is will send HTTP Get post to the upstream to get the SMS messages because the actually texting is localized
-     * already because AWS cannot be attached with a modem.
+     * This will send HTTP Get request to the upstream to get the SMS messages because texting is now localized
+     * because AWS cannot be attached with a modem.
      * @return void
      */
     public function downloadSmsMessages() {
         $client = new Client();
-
         $response = $client->get(config('app.upsream_host'));
-        $data = json_decode($response->getBody(), TRUE);
+        $records = json_decode($response->getBody(), TRUE);
 
-        // To be implemented: insert into db.
-
-        print_r($data);
+        foreach ($records as $record)
+            DB::table('smsMessages')->insert(['recipient' => $record->recipient, 'message'=> $record->message]);
     }
 }
