@@ -57,7 +57,7 @@ return [
 
     'from' => [
         'address' => 'jhunexjun@gmail.com',
-        'name' => 'PSE Monitor',
+        'name' => 'PSE Screener',
     ],
 
     /*

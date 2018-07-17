@@ -163,7 +163,8 @@ class Sms {
 
 		do {
 			$response .= fread($this->_handle, 128);
-		} while (($i += 128) == strlen($response) && $this->matchBiddenResponses($response));
+		// } while (($i += 128) == strlen($response) && $this->matchBiddenResponses($response));
+		} while (($i += 128) == strlen($response));
 
 		return trim($response);	// we trim here because there are other characters in the response other than Alphabet like \n.
 	}

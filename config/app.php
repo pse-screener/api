@@ -236,4 +236,5 @@ return [
     'baud_rate' => env('BAUD_RATE', 115200),
 
     'upstream_host' => env('UPSTREAM_HOST', 'http://localhost'),
+    'allow_sms' => env('ALLOW_SMS', false), // if we want the sms to be currently available. Sample no load credits.
 ];
