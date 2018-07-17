@@ -15,7 +15,7 @@ use GuzzleHttp\Exception\RequestException;
 
 use Jsms;
 
-class routinesController extends Controller
+class RoutinesController extends Controller
 {
     public function __construct() {
         $allowedFromScripts = array(
@@ -39,7 +39,10 @@ class routinesController extends Controller
             // SMS load status
             'alertAdministratorLoadStatus.php',
 
-            'downloadSmsMessages.php' // Ask for a json formatted list of SMS to be sent from a downstream.
+            'downloadSmsMessages.php', // Ask for a json formatted list of SMS to be sent from a downstream.
+            'sendPerMinuteAlertsToSubscribers.php',
+
+            'deleteOldRecords.php',
         );
 
         $allowedFromScriptsOnHolidays = array(
@@ -50,7 +53,7 @@ class routinesController extends Controller
         );
 
         if (!in_array(basename($_SERVER['SCRIPT_FILENAME']), $allowedFromScripts))
-            exit("The script only runs if started from one of the command line scripts.\n");
+            exit("The script only runs if started from one of the command line scripts listed.\n");
 
         // Check if today's holiday.
         $holidays = DB::table('holidays')->select('theDate')->whereDate('theDate', DB::raw('CURDATE()'))->count();
@@ -60,7 +63,9 @@ class routinesController extends Controller
                 exit("Only selected scripts are allowed to run on holidays.\n");
     }
 
-    /* being ran every minute on weekdays; Will dump into json file. */
+    /* being ran every minute on weekdays; Will dump into json file.
+    *   I noticed 3:20 PM is the last transaction in pse not 3:30 PM.
+    */
     public function downloadCompaniesAndPrices() {
     	/*if (!config('app.download_raw_data_beyond_trading_window')) {
     		if (date("N") > 5) {
@@ -108,6 +113,7 @@ class routinesController extends Controller
         1. $this->harvestDownloadedCompaniesAndPricesPerCompany().
         2. $this->materializeRawDataPerMinute();
         3. $this->materializeForPerCompanyPerTradingDay().
+        4. $this->sendDailyAlertsToSubscribers().
     */
     public function downloadCompaniesAndPricesByDate($date = NULL) {
         if ($date == NULL)
@@ -160,6 +166,7 @@ class routinesController extends Controller
         1. $this->harvestDownloadedCompaniesAndPrices().
         2. $this->materializeRawDataPerMinute.php
         3. $this->materializeForPerCompanyPerTradingDay().
+        4. 4. $this->sendDailyAlertsToSubscribers().
     */
     public function downloadCompaniesAndPricesByCurrentDate() {
         try {
@@ -256,6 +263,10 @@ class routinesController extends Controller
         print "Success!\n";
     }
 
+    /**
+    * The diff bet materialized null and 0 is that the former is untouched.
+    */
+
     public function materializeRawDataPerMinute() {
     	$rawRecords = DB::select("SELECT id, symbol, amount, percentChange, volume, asOf FROM raw_records WHERE (materialized IS NULL OR materialized = 0)");
 
@@ -279,16 +290,9 @@ class routinesController extends Controller
         }
 
         print "Success!\n";
-    }    
+    }
 
     public function materializeForPerCompanyPerTradingDay() {
-        // we only allow 
-        $currentDateTime = new \DateTime(date("Y-m-d H:i:s"));  //today
-        $pm_trade_end = new \DateTime(date("Y-m-d 15:30:00"));
-
-        // if ($currentDateTime < $pm_trade_end)
-        //     exit("This should be ran at 3.:30PM after trading hours.");
-
         $sql = "SELECT DATE_FORMAT(asOf, '%Y-%m-%d') AS asOf FROM aggregate_per_minute 
             WHERE materialized IS NULL OR materialized = 0
             GROUP BY DATE_FORMAT(asOf, '%Y-%m-%d')
@@ -304,7 +308,7 @@ class routinesController extends Controller
                     FROM aggregate_per_minute
                     WHERE DATE_FORMAT(asOf, '%Y-%m-%d') = '$tableDate->asOf'
                     AND (materialized IS NULL OR materialized = 0)
-                    ORDER BY companyId, asOf;";
+                    ORDER BY companyId, asOf";
             $records = db::select($sql);
 
             $arrayPerCompany = [];  $IDlist = [];
@@ -334,7 +338,7 @@ class routinesController extends Controller
                 }
             }
 
-            DB::table('aggregate_per_minute')->whereIn('id', $IDlist)->update(['materialized' => 1]);
+            // DB::table('aggregate_per_minute')->whereIn('id', $IDlist)->update(['materialized' => 1]);
         }
 
         print "Success!\n";
@@ -374,14 +378,15 @@ class routinesController extends Controller
             }
 
             if ($priceCondition != "") {
-                $message = "PSE Alert!\n{$record->symbol} price has already reached $priceCondition your alert price {$record->alertPrice}. As of {$record->asOf} is {$record->currentPrice}.\n";
-                $message .= "Visit " . config('app.url') . " to set another alert.";
+                $message = "PSE Alert!\n{$record->symbol} has already reached $priceCondition your alert price {$record->alertPrice}. As of {$record->asOf}, {$record->currentPrice}.\n
+                Visit " . config('app.url') . " to set new alert.";
                 DB::table('smsMessages')->insert(['alertId' => $record->id, 'recipient' => $record->mobileNo, 'message'=> $message]);
             }
         }
     }
 
     /* All outgoing SMS messages should be sent by this; This will scan smsMessages table and send it to recipient. */
+    /* 6/11/2018: Task of sending messages has already been localized. */
     public function sendSmsMessages() {
         $sms = new Jsms\Sms;
         $sms->delayInSeconds = 10;  // so far setting to 10 doesn't have an issue with the modem.
@@ -475,12 +480,13 @@ class routinesController extends Controller
     /* To be implemented soon: Instead of sending SMS on its own, give it to $this->sendSmsMessages(). */
     public function alertAdministratorLoadStatus() {
         $status = DB::select('CALL sp_getSmsLoadStatus()')[0];
-        DB::table('smsMessage')->insert(['recipient' => '09065165124', 'message' => "PSE Alert!\nSMS unli is about to expire on {$status->dateLoadExpiry} or other network bal is less than or equal to 10."]);
+        DB::table('smsMessage')->insert(['recipient' => 'XXXXXXXXXXX', 'message' => "PSE Alert!\nSMS unli is about to expire on {$status->dateLoadExpiry} or other network bal is less than or equal to 10."]);
     }
 
     /* To run this stop running, ... routines/sendSmsMessages.php first. */
+    /* 6/11/2018: Task of sending messages has already been localized. */
     public function testSms() {
-        $sms = new Jsms\Sms;
+        /*$sms = new Jsms\Sms;
         $sms->delayInSeconds = 7;
         print "Set device: " . $sms->setDevice(config('app.device_port')) . "\n";
         print "Open device: " . $sms->openDevice() . "\n";
@@ -488,7 +494,9 @@ class routinesController extends Controller
         print "Sent message: " . $sms->sendSMS('09065165124', 'I miss you more!!!') . "\n";
         $sms->sendCmd("ATi");
         print $sms->getDeviceResponse() . "\n";
-        print "Device closed: " . $sms->closeDevice() . "\n"; 
+        print "Device closed: " . $sms->closeDevice() . "\n";*/
+        file_put_contents("/tmp/test.txt", "sf sdf sfs");
+        DB::table('smsMessages')->insert(['recipient' => '09065165124', 'message'=> 'Lams na!!! hahaha...']);
     }
 
     /**
@@ -496,6 +504,7 @@ class routinesController extends Controller
      * because AWS cannot be attached with a modem.
      * @return void
      */
+    /* This is no use actually. To be deleted soon. */
     public function downloadSmsMessages() {
         $client = new Client();
         $response = $client->get(config('app.upsream_host') . "/api/v1/smsMessages");
@@ -503,5 +512,66 @@ class routinesController extends Controller
 
         foreach ($records as $record)
             DB::table('smsMessages')->insert(['recipient' => $record->recipient, 'message'=> $record->message]);
+    }
+
+    /**
+    * Sends per minute alert to subscribers to alert prices.
+    *
+    * @param <none>
+    * @return void
+    */
+    public function sendPerMinuteAlertsToSubscribers() {
+        $sql = "SELECT alerts.id, companies.symbol, alerts.priceCondition, alerts.price alertPrice, APM.price currentPrice, APM.asOf, users.mobileNo
+                FROM alerts JOIN aggregate_per_minute APM ON alerts.companyId = APM.companyId
+                    JOIN companies ON alerts.companyId = companies.id
+                    JOIN subscriptions ON subscriptions.id = alerts.subscriptionId
+                    JOIN users ON users.id = subscriptions.userId
+                WHERE alerts.updated_at <= APM.asOf
+                    AND sentToSms = 0
+                    AND alerts.updated_at < NOW()
+                    AND DATE_FORMAT(APM.asOf, '%Y-%m-%d') = DATE_FORMAT(NOW(), '%Y-%m-%d')
+                    AND users.active = 1";
+
+        $records = DB::select($sql);
+
+        foreach ($records as $record) {
+            $priceCondition = "";
+
+            if ($record->priceCondition == 'movesAbove') {
+                if ($record->alertPrice < $record->currentPrice) {
+                    $priceCondition = "above";
+                }
+            } elseif ($record->priceCondition == 'movesBelow') {
+                if ($record->alertPrice > $record->currentPrice) {
+                    $priceCondition = "below";
+                }
+            }
+
+            if ($priceCondition != "") {
+                $message = "PSE Alert!\n{$record->symbol} has already reached $priceCondition your alert price {$record->alertPrice}. As of {$record->asOf}, {$record->currentPrice}.\n
+                Visit " . config('app.url') . " to set new alert.";
+                DB::table('smsMessages')->insert(['alertId' => $record->id, 'recipient' => $record->mobileNo, 'message'=> $message]);
+            }
+        }
+    }
+
+    /**
+    * Delete records of more than 30 days already to free up space.
+    * 
+    */
+    public function deleteOldRecords($days = 30) {
+        // DB::beginTransaction();
+            // DB::table('raw_records')->whereDate('created_at', '>', $days)->delete();
+            // DB::table('aggregate_per_minute')->whereDate('created_at', '>', $days)->delete();
+
+            DB::table('raw_records')->whereDate('created_at', '>', $days); // ->limit(1)->delete();
+            DB::table('aggregate_per_minute')->whereDate('created_at', '>', $days); // ->limit(1)->delete();
+        // DB::commit();
+
+        
+        if ($deletedRows)
+            print "Success deleting old records!\n";
+        else
+            print "Unsuccessful deleting old records.\n";
     }
 }

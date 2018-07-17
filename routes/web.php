@@ -21,23 +21,25 @@ Auth::routes();
 // Route::get('/home', 'HomeController@index');
 
 /* Actually we want to add constraints that only to be ran locally. */
-Route::get('/downloadCompaniesAndPrices', 'routinesController@downloadCompaniesAndPrices');
-Route::get('/harvestDownloadedCompaniesAndPrices', 'routinesController@harvestDownloadedCompaniesAndPrices');
-Route::get('/materializeRawDataPerMinute', 'routinesController@materializeRawDataPerMinute');
-Route::get('/materializeForPerCompanyPerTradingDay', 'routinesController@materializeForPerCompanyPerTradingDay');
-// Route::get('/performEOD', 'routinesController@performEOD');	// looks like we don't need this anymore.
-Route::get('/sendDailyAlertsToSubscribers', 'routinesController@sendDailyAlertsToSubscribers');
-Route::get('/testSMS', 'routinesController@testSMS');
+Route::get('/downloadCompaniesAndPrices', 'RoutinesController@downloadCompaniesAndPrices');
+Route::get('/harvestDownloadedCompaniesAndPrices', 'RoutinesController@harvestDownloadedCompaniesAndPrices');
+Route::get('/materializeRawDataPerMinute', 'RoutinesController@materializeRawDataPerMinute');
+Route::get('/materializeForPerCompanyPerTradingDay', 'RoutinesController@materializeForPerCompanyPerTradingDay');
+// Route::get('/performEOD', 'RoutinesController@performEOD');	// looks like we don't need this anymore.
+Route::get('/sendDailyAlertsToSubscribers', 'RoutinesController@sendDailyAlertsToSubscribers');
+Route::get('/testSms', 'RoutinesController@testSms');
 
 // if there's lacking date
-Route::get('/downloadCompaniesAndPricesByDate/{date}', 'routinesController@downloadCompaniesAndPricesByDate');
-Route::get('/harvestDownloadedCompaniesAndPricesPerCompany', 'routinesController@harvestDownloadedCompaniesAndPricesPerCompany');
+Route::get('/downloadCompaniesAndPricesByDate/{date}', 'RoutinesController@downloadCompaniesAndPricesByDate');
+Route::get('/harvestDownloadedCompaniesAndPricesPerCompany', 'RoutinesController@harvestDownloadedCompaniesAndPricesPerCompany');
 
 // if current date is lacking
-Route::get('/downloadCompaniesAndPricesByCurrentDate', 'routinesController@downloadCompaniesAndPricesByCurrentDate');
+Route::get('/downloadCompaniesAndPricesByCurrentDate', 'RoutinesController@downloadCompaniesAndPricesByCurrentDate');
 
 // this will scan smsMessages table and send it to recipient
-Route::get('/sendSmsMessages', 'routinesController@sendSmsMessages');
+Route::get('/sendSmsMessages', 'RoutinesController@sendSmsMessages');
 
 // Alert SMS Load status
-Route::get('/alertAdministratorLoadStatus', 'routinesController@alertAdministratorLoadStatus');
+Route::get('/alertAdministratorLoadStatus', 'RoutinesController@alertAdministratorLoadStatus');
+
+Route::get('/deleteOldRecords', 'RoutinesController@deleteOldRecords');

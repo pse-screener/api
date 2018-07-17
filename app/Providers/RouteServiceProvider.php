@@ -74,8 +74,15 @@ class RouteServiceProvider extends ServiceProvider
         ], function ($router) { // Unprotected API routes
             Route::post('/emailConfirmation/{hash}', 'Auth\RegisterController@emailConfirmation');
             Route::resource('/contactUs', 'ContactUsController', ['only' => ['store']]);
+            /* From the http://<mysite.com>/public/#/sendFreeSMS send button
+             * http://www.pse-screener.com/api/v1/sendFreeSms */
             Route::resource('/sendFreeSms', 'SendFreeSmsController', ['only' => ['store']]);
+
+            /** From the downstream, retrieving the SMS messages to be sent because AWS cannot have modem.
+             *  No auth:api at the moment
+             */
             Route::get('/smsMessages', 'SmsMessagesController@index');
+
 
             Route::group(['middleware' => 'auth:api'], function($router) {
                 // Inside here are protected API routes
