@@ -93,10 +93,18 @@ $ /var/www/production/api$ sudo chown -R www-data:www-data storage/oauth-private
 $ /var/www/production/api$ sudo chown -R www-data:www-data storage/oauth-public.key
 
 CURL
-curl -d "grant_type=password&client_id=5&client_secret=AQirx0sFoBhGOYaOLLRHkBWquEALRKwhFMa8LVDk&username=jdream_catcher@yahoo.com&password=1245435453" http://www.pse-screener.com/oauth/token > /d/tmp/error.html
+curl -d "grant_type=password&client_id=X&client_secret=X&username=email@y.com&password=000000" http://www.pse-screener.com/oauth/token > /d/tmp/error.html
 
 ##### Restarting the server (production)
 1. Clear and cache the config: php artisan config:cache;
 2. Check the current timezone of mysql. I haven't actually checked if restarting reset the timezone to +-0.
 3. Seems like the environment variable is wiped out when restarting. `$ export NODE_ENV=production`. Look for way to make this permanent.
 4. Try to check if timezone is reset to UTC, otherwise follow resolution of [Issue 36](https://github.com/pse-screener/api/issues/36).
+
+##### Git pull
+1. `sudo su`
+2. `# eval $(ssh-agent -s)`
+3. `# ssh-add /home/ubuntu/.ssh/id_rsa`
+4. `# git pull`
+5. `# exit`
+6. `$ php artisan config:cache`
