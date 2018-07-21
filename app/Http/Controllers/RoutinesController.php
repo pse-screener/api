@@ -360,7 +360,11 @@ class RoutinesController extends Controller
                     AND sentToSms = 0
                     AND alerts.updated_at < NOW()
                     AND DATE_FORMAT(MPCD.asOf, '%Y-%m-%d') = DATE_FORMAT(NOW(), '%Y-%m-%d')
-                    AND users.active = 1";
+                    AND users.active = 1
+                    AND (CASE
+                            WHEN priceCondition = 'movesBelow' THEN MPCD.price < alerts.price
+                            WHEN priceCondition = 'movesAbove' THEN MPCD.price > alerts.price
+                        END)";
 
         $records = DB::select($sql);
 
@@ -530,7 +534,11 @@ class RoutinesController extends Controller
                     AND sentToSms = 0
                     AND alerts.updated_at < NOW()
                     AND DATE_FORMAT(APM.asOf, '%Y-%m-%d') = DATE_FORMAT(NOW(), '%Y-%m-%d')
-                    AND users.active = 1";
+                    AND users.active = 1
+                    AND (CASE
+                            WHEN priceCondition = 'movesBelow' THEN APM.price < alerts.price
+                            WHEN priceCondition = 'movesAbove' THEN APM.price > alerts.price
+                        END)";
 
         $records = DB::select($sql);
 
@@ -538,16 +546,12 @@ class RoutinesController extends Controller
             $priceCondition = "";
 
             if ($record->priceCondition == 'movesAbove') {
-                if ($record->alertPrice < $record->currentPrice) {
-                    $priceCondition = "above";
-                }
+                $priceCondition = "above";
             } elseif ($record->priceCondition == 'movesBelow') {
-                if ($record->alertPrice > $record->currentPrice) {
-                    $priceCondition = "below";
-                }
+                $priceCondition = "below";
             }
 
-            if ($priceCondition != "") {
+            if ($priceCondition !== "")
                 $message = "PSE Alert!\n{$record->symbol} has already reached $priceCondition your alert price {$record->alertPrice}. As of {$record->asOf}, {$record->currentPrice}.\n
                 Visit " . config('app.url') . " to set new alert.";
                 DB::table('smsMessages')->insert(['alertId' => $record->id, 'recipient' => $record->mobileNo, 'message'=> $message]);
