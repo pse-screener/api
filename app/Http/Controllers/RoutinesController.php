@@ -35,7 +35,7 @@ class RoutinesController extends Controller
             'downloadCompaniesAndPricesByCurrentDate.php',
 
             'sendSmsMessages.php',
-            
+
             // SMS load status
             'alertAdministratorLoadStatus.php',
 
@@ -48,7 +48,7 @@ class RoutinesController extends Controller
         $allowedFromScriptsOnHolidays = array(
             'testSms.php',  // if you want to test SMS.
             'artisan',  // used for to run "php artisan route:list"
-            
+
             'alertAdministratorLoadStatus.php' // SMS load status
         );
 
@@ -507,7 +507,7 @@ class RoutinesController extends Controller
                 $priceCondition = "below";
             }
 
-            if ($priceCondition !== "")
+            if ($priceCondition !== "") {
                 $message = "PSE Alert!\n{$record->symbol} has already reached $priceCondition your alert price {$record->alertPrice}. As of {$record->asOf}, {$record->currentPrice}.\n
                 Visit " . config('app.url') . " to set new alert.";
                 DB::table('smsMessages')->insert(['alertId' => $record->id, 'recipient' => $record->mobileNo, 'message'=> $message]);
@@ -516,22 +516,20 @@ class RoutinesController extends Controller
     }
 
     /**
-    * Delete records of more than 30 days already to free up space.
+    * Delete records of more than $days days already to free up space.
     * 
     */
-    public function deleteOldRecords($days = 30) {
-        // DB::beginTransaction();
-            // DB::table('raw_records')->whereDate('created_at', '>', $days)->delete();
-            // DB::table('aggregate_per_minute')->whereDate('created_at', '>', $days)->delete();
+    public function deleteOldRecords($days = 60) {
+        if ($days < 60) {
+            print "Now allowed to delete below 60 days.\n";
+            return;
+        }
 
-            DB::table('raw_records')->whereDate('created_at', '>', $days); // ->limit(1)->delete();
-            DB::table('aggregate_per_minute')->whereDate('created_at', '>', $days); // ->limit(1)->delete();
-        // DB::commit();
+        DB::beginTransaction();
+            DB::table('raw_records')->whereDate('created_at', '>', $days)->delete();
+            DB::table('aggregate_per_minute')->whereDate('created_at', '>', $days)->delete();
+        DB::commit();
 
-        
-        if ($deletedRows)
-            print "Success deleting old records!\n";
-        else
-            print "Unsuccessful deleting old records.\n";
+        print "Successfully deleted old records!\n";
     }
 }
