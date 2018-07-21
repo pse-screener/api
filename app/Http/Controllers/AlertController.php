@@ -177,21 +177,22 @@ class AlertController extends Controller
         $subscriptions = $this->checkSubscription($request);
         $lastClosedPrice = $this->checkLastClosedPrice($companyId);
 
-        if ($request->priceCondition == "movesBelow") {
+        $alert =  \App\Alerts::find($id);
+
+        if ($alert->priceCondition == "movesBelow") {
             if ($request->price > $lastClosedPrice->price)
                 return response()->json(["code" => 1, "message" => "Last closed price $lastClosedPrice->price is already below your alert price."]);
-        } elseif ($request->priceCondition == "movesAbove") {
+        } elseif ($alert->priceCondition == "movesAbove") {
             if ($request->price < $lastClosedPrice->price)
                 return response()->json(["code" => 1, "message" => "Last closed price $lastClosedPrice->price is already above your alert price."]);
         } else {
             return response()->json(["code" => 1, "message" => "Unknown price condition."]);
         }
-        
+
         foreach ($subscriptions as $subscription) {
             $alert =  \App\Alerts::find($id);
             $alert->subscriptionId = $subscription->id;
             $alert->companyId = $request->companyId;
-            $alert->priceCondition = $request->priceCondition;
             $alert->price = $request->price;
             $alert->sentToSms = 0;
             $alert->sendSms = 1;
