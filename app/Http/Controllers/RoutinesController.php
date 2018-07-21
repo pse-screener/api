@@ -67,30 +67,13 @@ class RoutinesController extends Controller
     *   I noticed 3:20 PM is the last transaction in pse not 3:30 PM.
     */
     public function downloadCompaniesAndPrices() {
-    	/*if (!config('app.download_raw_data_beyond_trading_window')) {
-    		if (date("N") > 5) {
-    			exit("Environment doesn't allow download raw data beyong trading hours.\n");
-    		}
+        $client = new Client();
 
-    		$currentDateTime = new \DateTime(date("Y-m-d H:i:s"));	//today
-    		// note: give allowance.
-    		$am_trade_start = new \DateTime(date("Y-m-d 09:29:00"));
-    		$am_trade_end = new \DateTime(date("Y-m-d 12:02:00"));
-    		$pm_trade_start = new \DateTime(date("Y-m-d 01:29:00"));
-    		$pm_trade_end = new \DateTime(date("Y-m-d 15:32:00"));
+        $response = $client->get('http://phisix-api4.appspot.com/stocks.json');
+        $data = json_decode($response->getBody(), TRUE);
 
-    		if (!($currentDateTime >= $am_trade_start && $currentDateTime <= $am_trade_end) || !($currentDateTime >= $pm_trade_start && $currentDateTime <= $pm_trade_end)) {
-    			exit("Environment doesn't allow download raw data beyong trading hours.\n");
-    		}
-    	}*/
-
-    	$client = new Client();
-
-		$response = $client->get('http://phisix-api4.appspot.com/stocks.json');
-		$data = json_decode($response->getBody(), TRUE);
-
-		if (!isset($data['as_of']))
-			exit("No data in upstream.\n");
+        if (!isset($data['as_of']))
+            exit("No data in upstream.\n");
 
         $asOf = $data['as_of'];
         preg_match("/(\d{4}-\d{2}-\d{2})/", $asOf, $match);
@@ -263,12 +246,12 @@ class RoutinesController extends Controller
         print "Success!\n";
     }
 
+
     /**
     * The diff bet materialized null and 0 is that the former is untouched.
     */
-
     public function materializeRawDataPerMinute() {
-    	$rawRecords = DB::select("SELECT id, symbol, amount, percentChange, volume, asOf FROM raw_records WHERE (materialized IS NULL OR materialized = 0)");
+        $rawRecords = DB::select("SELECT id, symbol, amount, percentChange, volume, asOf FROM raw_records WHERE (materialized IS NULL OR materialized = 0)");
 
         $rawRecords2 = [];
         foreach ($rawRecords as $rawRecord) {
@@ -344,10 +327,6 @@ class RoutinesController extends Controller
         print "Success!\n";
     }
 
-    /* I'm not sure if this is still needed but currently not. */
-    public function performEOD() {
-    	DB::statement("call sp_perform_eod()");
-    }
 
     /* Intended to run at the end of the trading day. */
     public function sendDailyAlertsToSubscribers() {
@@ -388,6 +367,7 @@ class RoutinesController extends Controller
             }
         }
     }
+
 
     /* All outgoing SMS messages should be sent by this; This will scan smsMessages table and send it to recipient. */
     /* 6/11/2018: Task of sending messages has already been localized. */
@@ -490,33 +470,9 @@ class RoutinesController extends Controller
     /* To run this stop running, ... routines/sendSmsMessages.php first. */
     /* 6/11/2018: Task of sending messages has already been localized. */
     public function testSms() {
-        /*$sms = new Jsms\Sms;
-        $sms->delayInSeconds = 7;
-        print "Set device: " . $sms->setDevice(config('app.device_port')) . "\n";
-        print "Open device: " . $sms->openDevice() . "\n";
-        print "Set baud rate: " . $sms->setBaudRate(config('app.baud_rate')) . "\n";
-        print "Sent message: " . $sms->sendSMS('09065165124', 'I miss you more!!!') . "\n";
-        $sms->sendCmd("ATi");
-        print $sms->getDeviceResponse() . "\n";
-        print "Device closed: " . $sms->closeDevice() . "\n";*/
-        file_put_contents("/tmp/test.txt", "sf sdf sfs");
         DB::table('smsMessages')->insert(['recipient' => '09065165124', 'message'=> 'Lams na!!! hahaha...']);
     }
 
-    /**
-     * This will send HTTP Get request to the upstream to get the SMS messages because texting is now localized
-     * because AWS cannot be attached with a modem.
-     * @return void
-     */
-    /* This is no use actually. To be deleted soon. */
-    public function downloadSmsMessages() {
-        $client = new Client();
-        $response = $client->get(config('app.upsream_host') . "/api/v1/smsMessages");
-        $records = json_decode($response->getBody(), TRUE);
-
-        foreach ($records as $record)
-            DB::table('smsMessages')->insert(['recipient' => $record->recipient, 'message'=> $record->message]);
-    }
 
     /**
     * Sends per minute alert to subscribers to alert prices.
