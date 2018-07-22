@@ -13,6 +13,8 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Psr7;
 use GuzzleHttp\Exception\RequestException;
 
+use Carbon\Carbon;
+
 use Jsms;
 
 class RoutinesController extends Controller
@@ -525,9 +527,11 @@ class RoutinesController extends Controller
             return;
         }
 
+        $carbon = Carbon::now(-$days);
+
         DB::beginTransaction();
-            DB::table('raw_records')->whereDate('created_at', '>', $days)->delete();
-            DB::table('aggregate_per_minute')->whereDate('created_at', '>', $days)->delete();
+            DB::table('raw_records')->whereDate('created_at', '<', $carbon)->delete();
+            DB::table('aggregate_per_minute')->whereDate('created_at', '<', $carbon)->delete();
         DB::commit();
 
         print "Successfully deleted old records!\n";
