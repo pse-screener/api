@@ -527,11 +527,12 @@ class RoutinesController extends Controller
             return;
         }
 
-        $carbon = Carbon::now(-$days);
+        $carbon = Carbon::now();
+        $date = $carbon->subDays($days);
 
         DB::beginTransaction();
-            DB::table('raw_records')->whereDate('created_at', '<', $carbon)->delete();
-            DB::table('aggregate_per_minute')->whereDate('created_at', '<', $carbon)->delete();
+            DB::table('raw_records')->whereDate('created_at', '<', $date)->delete();
+            DB::table('aggregate_per_minute')->whereDate('created_at', '<', $date)->delete();
         DB::commit();
 
         print "Successfully deleted old records!\n";
