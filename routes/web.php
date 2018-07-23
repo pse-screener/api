@@ -27,17 +27,21 @@ Route::get('/materializeRawDataPerMinute', 'RoutinesController@materializeRawDat
 Route::get('/materializeForPerCompanyPerTradingDay', 'RoutinesController@materializeForPerCompanyPerTradingDay');
 // Route::get('/performEOD', 'RoutinesController@performEOD');	// looks like we don't need this anymore.
 Route::get('/sendDailyAlertsToSubscribers', 'RoutinesController@sendDailyAlertsToSubscribers');
+
+/* As this route imply. */
+Route::get('/sendPerMinuteAlertsToSubscribers', 'RoutinesController@sendPerMinuteAlertsToSubscribers');
+
 Route::get('/testSms', 'RoutinesController@testSms');
 
 // if there's lacking date
 Route::get('/downloadCompaniesAndPricesByDate/{date}', 'RoutinesController@downloadCompaniesAndPricesByDate');
 Route::get('/harvestDownloadedCompaniesAndPricesPerCompany', 'RoutinesController@harvestDownloadedCompaniesAndPricesPerCompany');
 
-// if current date is lacking
+// if current date is the one lacking
 Route::get('/downloadCompaniesAndPricesByCurrentDate', 'RoutinesController@downloadCompaniesAndPricesByCurrentDate');
 
 // this will scan smsMessages table and send it to recipient
-Route::get('/sendSmsMessages', 'RoutinesController@sendSmsMessages');
+// Route::get('/sendSmsMessages', 'RoutinesController@sendSmsMessages');
 
 // Alert SMS Load status
 Route::get('/alertAdministratorLoadStatus', 'RoutinesController@alertAdministratorLoadStatus');
