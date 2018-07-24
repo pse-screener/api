@@ -330,7 +330,10 @@ class RoutinesController extends Controller
     }
 
     private function formatNumber($value) {
+        file_put_contents("/tmp/formatNumber.txt", $value);
         preg_match('/\.(\d)*/', $value, $matches);
+
+        file_put_contents("/tmp/formatNumber_matches.txt", print_r($matches, TRUE));
 
         switch($matches) {
             case null:
@@ -389,9 +392,9 @@ class RoutinesController extends Controller
             }
 
             if ($priceCondition != "") {
-                $message = "PSE Alert!\n
-                {$record->symbol} has already reached $priceCondition your alert price " . $this->formatNumber($record->alertPrice) . ". As of {$record->asOf}, " . $this->formatNumber($record->currentPrice) . ".\n
-                Visit " . substr(config('app.url'), 6) . " to set new alert.";
+                $message = "PSE Alert!";
+                $message .= "\n{$record->symbol} has already reached $priceCondition your alert price " . $this->formatNumber($record->alertPrice) . ". As of {$record->asOf}, " . $this->formatNumber($record->currentPrice) . "";
+                $message .= "\nVisit " . str_replace("http://", "", config("app.url")) . " to set new alert.";
                 DB::table('smsMessages')->insert(['alertId' => $record->id, 'recipient' => $record->mobileNo, 'message'=> $message]);
             }
         }
@@ -510,22 +513,6 @@ class RoutinesController extends Controller
     * @return void
     */
     public function sendPerMinuteAlertsToSubscribers() {
-        /*$sql = "SELECT alerts.id, companies.symbol, alerts.priceCondition, alerts.price alertPrice, APM.price currentPrice, APM.asOf, users.mobileNo
-                FROM alerts JOIN aggregate_per_minute APM ON alerts.companyId = APM.companyId
-                    JOIN companies ON alerts.companyId = companies.id
-                    JOIN subscriptions ON subscriptions.id = alerts.subscriptionId
-                    JOIN users ON users.id = subscriptions.userId
-                WHERE alerts.updated_at <= APM.asOf
-                    AND sentToSms = 0
-                    AND alerts.updated_at < NOW()
-                    AND DATE_FORMAT(APM.asOf, '%Y-%m-%d') = DATE_FORMAT(NOW(), '%Y-%m-%d')
-                    AND users.active = 1
-                    AND (CASE
-                            WHEN priceCondition = 'movesBelow' THEN APM.price < alerts.price
-                            WHEN priceCondition = 'movesAbove' THEN APM.price > alerts.price
-                        END)";*/
-
-        // $records = DB::select($sql);
         $records = DB::select('CALL sp_getSubscribersForPerMinAlert()');
 
         foreach ($records as $record) {
@@ -538,9 +525,9 @@ class RoutinesController extends Controller
             }
 
             if ($priceCondition !== "") {
-                $message = "PSE Alert!\n
-                {$record->symbol} has already reached $priceCondition your alert price " . $this->formatNumber($record->alertPrice) . ". As of {$record->asOf}, " . $this->formatNumber($record->currentPrice) . "\n
-                Visit " . substr(config('app.url'), 6) . " to set new alert.";
+                $message = "PSE Alert!";
+                $message .= "\n{$record->symbol} has already reached $priceCondition your alert price " . $this->formatNumber($record->alertPrice) . ". As of {$record->asOf}, " . $this->formatNumber($record->currentPrice) . "";
+                $message .= "\nVisit " . str_replace("http://", "", config("app.url")) . " to set new alert.";
                 DB::table('smsMessages')->insert(['alertId' => $record->id, 'recipient' => $record->mobileNo, 'message'=> $message]);
             }
         }
