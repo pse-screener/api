@@ -393,7 +393,7 @@ class RoutinesController extends Controller
 
             if ($priceCondition != "") {
                 $message = "PSE Alert!";
-                $message .= "\n{$record->symbol} has already reached $priceCondition your alert price " . $this->formatNumber($record->alertPrice) . ". As of {$record->asOf}, " . $this->formatNumber($record->currentPrice) . "";
+                $message .= "\n{$record->symbol} has already reached $priceCondition your alert price " . $this->formatNumber($record->alertPrice) . ". As of {$record->asOf}, " . $this->formatNumber($record->currentPrice) . ". ";
                 $message .= "\nVisit " . str_replace("http://", "", config("app.url")) . " to set new alert.";
                 DB::table('smsMessages')->insert(['alertId' => $record->id, 'recipient' => $record->mobileNo, 'message'=> $message]);
             }
@@ -526,7 +526,7 @@ class RoutinesController extends Controller
 
             if ($priceCondition !== "") {
                 $message = "PSE Alert!";
-                $message .= "\n{$record->symbol} has already reached $priceCondition your alert price " . $this->formatNumber($record->alertPrice) . ". As of {$record->asOf}, " . $this->formatNumber($record->currentPrice) . "";
+                $message .= "\n{$record->symbol} has already reached $priceCondition your alert price " . $this->formatNumber($record->alertPrice) . ". As of {$record->asOf}, " . $this->formatNumber($record->currentPrice) . ". ";
                 $message .= "\nVisit " . str_replace("http://", "", config("app.url")) . " to set new alert.";
                 DB::table('smsMessages')->insert(['alertId' => $record->id, 'recipient' => $record->mobileNo, 'message'=> $message]);
             }
