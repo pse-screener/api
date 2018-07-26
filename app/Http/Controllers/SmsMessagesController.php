@@ -18,7 +18,7 @@ class SmsMessagesController extends Controller
         $records = \App\SmsMessage::whereIn('status', ['draft', 'outbox'])->get();
         $smsMessages = [];
         foreach ($records as $record)
-            $smsMessages[] = ['id'=> $record->id, 'alertId' => $record->alertId, 'recipient' => $record->recipient, 'message' => $record->message, 'status' => $record->status];
+            $smsMessages[] = ['id'=> $record->id, 'alertId' => $record->alertId, 'recipient' => $record->recipient, 'message' => $record->message, 'status' => $record->status, 'created_at' => NULL];
 
         foreach ($smsMessages as $smsMessage) {
             DB::beginTransaction();
