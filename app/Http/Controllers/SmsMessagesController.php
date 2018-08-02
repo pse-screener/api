@@ -21,12 +21,7 @@ class SmsMessagesController extends Controller
             $smsMessages[] = ['id'=> $record->id, 'alertId' => $record->alertId, 'recipient' => $record->recipient, 'message' => $record->message, 'status' => $record->status, 'created_at' => $record->created_at->toDateTimeString()];
 
         foreach ($smsMessages as $smsMessage) {
-            DB::beginTransaction();
-                if ($smsMessage['alertId'])
-                    DB::table('alerts')->where('id', $smsMessage['alertId'])->update(['sentToSms' => 1]);
-
-                DB::table('smsMessages')->where('id', $smsMessage['id'])->update(['status' => 'sent']);
-            DB::commit();
+            DB::table('smsMessages')->where('id', $smsMessage['id'])->update(['status' => 'sent']);
         }
 
         return response()->json($smsMessages);
