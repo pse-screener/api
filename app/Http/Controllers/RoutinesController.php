@@ -366,7 +366,11 @@ class RoutinesController extends Controller
                 $message = "PSE Alert!";
                 $message .= "\n{$record->symbol} has already reached $priceCondition your alert price " . floatval($record->alertPrice) . ". As of {$record->asOf}, " . floatval($record->currentPrice) . ". ";
                 $message .= "\nVisit " . str_replace("http://", "", config("app.url")) . " to set new alert.";
-                DB::table('smsMessages')->insert(['alertId' => $record->id, 'recipient' => $record->mobileNo, 'message'=> $message]);
+
+                DB::beginTransaction();
+                    DB::table('alerts')->where('id', $record->id)->update(['sentToSms' => 1]);
+                    DB::table('smsMessages')->insert(['alertId' => $record->id, 'recipient' => $record->mobileNo, 'message'=> $message]);
+                DB::commit();
             }
         }
     }
@@ -473,7 +477,8 @@ class RoutinesController extends Controller
     /* To run this stop running, ... routines/sendSmsMessages.php first. */
     /* 6/11/2018: Task of sending messages has already been localized. */
     public function testSms() {
-        DB::table('smsMessages')->insert(['recipient' => '09065165124', 'message'=> 'Lams na!!! hahaha...']);
+        $message = 'Decode this.... ' . str_random(40);
+        DB::table('smsMessages')->insert(['recipient' => '09065165124', 'message'=> $message]);
     }
 
 
@@ -499,7 +504,10 @@ class RoutinesController extends Controller
                 $message = "PSE Alert!";
                 $message .= "\n{$record->symbol} has already reached $priceCondition your alert price " . floatval($record->alertPrice) . ". As of {$record->asOf}, " . floatval($record->currentPrice) . ". ";
                 $message .= "\nVisit " . str_replace("http://", "", config("app.url")) . " to set new alert.";
-                DB::table('smsMessages')->insert(['alertId' => $record->id, 'recipient' => $record->mobileNo, 'message'=> $message]);
+                DB::beginTransaction();
+                    DB::table('alerts')->where('id', $record->id)->update(['sentToSms' => 1]);
+                    DB::table('smsMessages')->insert(['alertId' => $record->id, 'recipient' => $record->mobileNo, 'message'=> $message]);
+                DB::commit();
             }
         }
     }
