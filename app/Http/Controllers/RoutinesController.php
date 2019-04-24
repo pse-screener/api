@@ -25,7 +25,7 @@ class RoutinesController extends Controller
             'harvestDownloadedCompaniesAndPrices.php',
             'materializeRawDataPerMinute.php',
             'materializeForPerCompanyPerTradingDay.php',
-            'sendDailyAlertsToSubscribers.php', // 
+            'sendDailyAlertsToSubscribers.php', //
             'testSms.php',  // if you want to test SMS.
             'artisan',  // used for to run "php artisan route:list"
 
@@ -120,7 +120,7 @@ class RoutinesController extends Controller
 
                 continue;
             }
-            
+
             if ($response->getStatusCode() != 200)
                 continue;
 
@@ -193,6 +193,11 @@ class RoutinesController extends Controller
     public function harvestDownloadedCompaniesAndPrices() {
         foreach (glob("/var/log/pse_monitor/raw_data/*.json") as $filename) {
             $data = json_decode(file_get_contents($filename), TRUE);    // returns assoc array
+
+            if (!isset($data['stock'])) {
+                continue;
+            }
+
             $stocks = $data['stock'];
             $asOf = $data['as_of'];
             preg_match("/(\d{4}-\d{2}-\d{2})/", $asOf, $match);
@@ -201,7 +206,7 @@ class RoutinesController extends Controller
             $asOfTimeOnly = $match[0];
             $asOfDateTime = $asOfDateOnly . " " . $asOfTimeOnly;
             $asOfDateTime = \DateTime::createFromFormat('Y-m-d H:i:s', $asOfDateTime);
-            
+
             foreach ($stocks as $stock) {
                 $this->createOrUpdateCompany($stock);
 
@@ -231,7 +236,7 @@ class RoutinesController extends Controller
             $asOfTimeOnly = $match[0];
             $asOfDateTime = $asOfDateOnly . " " . $asOfTimeOnly;
             $asOfDateTime = \DateTime::createFromFormat('Y-m-d H:i:s', $asOfDateTime);
-            
+
             foreach ($stocks as $stock) {
                 $this->createOrUpdateCompany($stock);
 
@@ -278,7 +283,7 @@ class RoutinesController extends Controller
     }
 
     public function materializeForPerCompanyPerTradingDay() {
-        $sql = "SELECT DATE_FORMAT(asOf, '%Y-%m-%d') AS asOf FROM aggregate_per_minute 
+        $sql = "SELECT DATE_FORMAT(asOf, '%Y-%m-%d') AS asOf FROM aggregate_per_minute
             WHERE materialized IS NULL OR materialized = 0
             GROUP BY DATE_FORMAT(asOf, '%Y-%m-%d')
             ORDER BY DATE_FORMAT(asOf, '%Y-%m-%d')";
@@ -384,7 +389,7 @@ class RoutinesController extends Controller
         print "Set device: " . $sms->setDevice(config('app.device_port')) . "\n";
         print "Open device: " . $sms->openDevice() . "\n";
         print "Set baud rate: " . $sms->setBaudRate(config('app.baud_rate')) . "\n";
-        
+
         while (true) {
             $records = DB::table('smsMessages')->select('id', 'alertId', 'recipient', 'message', 'status')->whereIn('status', ['draft', 'outbox'])->get();
 
@@ -474,8 +479,6 @@ class RoutinesController extends Controller
         DB::table('smsMessage')->insert(['recipient' => 'XXXXXXXXXXX', 'message' => "PSE Alert!\nSMS unli is about to expire on {$status->dateLoadExpiry} or other network bal is less than or equal to 10."]);
     }
 
-    /* To run this stop running, ... routines/sendSmsMessages.php first. */
-    /* 6/11/2018: Task of sending messages has already been localized. */
     public function testSms() {
         $message = 'Decode this.... ' . str_random(40);
         DB::table('smsMessages')->insert(['recipient' => '09065165124', 'message'=> $message]);
@@ -514,11 +517,11 @@ class RoutinesController extends Controller
 
     /**
     * Delete records of more than $days days already to free up space.
-    * 
+    *
     */
     public function deleteOldRecords($days = 60) {
         if ($days < 60) {
-            print "Now allowed to delete below 60 days.\n";
+            print "Not allowed to delete below 60 days.\n";
             return;
         }
 
